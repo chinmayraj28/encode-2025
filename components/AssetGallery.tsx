@@ -16,6 +16,7 @@ const CONTRACT_ABI = [
       {
         "components": [
           { "internalType": "string", "name": "ipfsHash", "type": "string" },
+          { "internalType": "string", "name": "previewHash", "type": "string" },
           { "internalType": "string", "name": "mediaType", "type": "string" },
           { "internalType": "uint256", "name": "uploadTimestamp", "type": "uint256" },
           { "internalType": "address", "name": "creator", "type": "address" },
@@ -41,7 +42,7 @@ const CONTRACT_ABI = [
   {
     "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
     "name": "useAsset",
-    "outputs": [],
+    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
     "stateMutability": "payable",
     "type": "function"
   },
@@ -67,6 +68,7 @@ const CONTRACT_ABI = [
 interface MediaAsset {
   tokenId: number;
   ipfsHash: string;
+  previewHash: string;
   mediaType: string;
   uploadTimestamp: bigint;
   creator: string;

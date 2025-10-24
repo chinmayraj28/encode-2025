@@ -14,7 +14,8 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
 
     // Struct to store media asset metadata
     struct MediaAsset {
-        string ipfsHash;        // IPFS hash of the media file
+        string ipfsHash;        // IPFS hash of the ENCRYPTED media file
+        string previewHash;     // IPFS hash of the preview/watermarked version (unencrypted)
         string mediaType;       // "audio", "visual", "vfx", "sfx"
         uint256 uploadTimestamp;
         address creator;
@@ -31,6 +32,9 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
 
     // Mapping from token ID to media asset details
     mapping(uint256 => MediaAsset) public mediaAssets;
+    
+    // Mapping from token ID to encryption key (only accessible after purchase)
+    mapping(uint256 => string) private decryptionKeys;
     
     // Mapping from token ID to collaborators
     mapping(uint256 => Collaborator[]) public collaborators;
@@ -58,17 +62,25 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         address indexed recipient,
         uint256 amount
     );
+    
+    event DecryptionKeyReleased(
+        uint256 indexed tokenId,
+        address indexed buyer,
+        string decryptionKey
+    );
 
     constructor() ERC721("MediaAssetNFT", "MEDIA") Ownable(msg.sender) {}
 
     /**
-     * @dev Mint a new media asset NFT
+     * @dev Mint a new media asset NFT with encryption support
      */
     function mintMediaAsset(
         string memory ipfsHash,
+        string memory previewHash,
         string memory mediaType,
         string memory tokenURI,
         uint256 royaltyPercentage,
+        string memory encryptionKey,
         Collaborator[] memory _collaborators
     ) public returns (uint256) {
         require(royaltyPercentage <= 10000, "Royalty too high"); // Max 100%
@@ -81,6 +93,7 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         
         mediaAssets[tokenId] = MediaAsset({
             ipfsHash: ipfsHash,
+            previewHash: previewHash,
             mediaType: mediaType,
             uploadTimestamp: block.timestamp,
             creator: msg.sender,
@@ -88,6 +101,9 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
             usageCount: 0,
             totalRevenue: 0
         });
+        
+        // Store encryption key privately
+        decryptionKeys[tokenId] = encryptionKey;
 
         // Add collaborators if any
         if (_collaborators.length > 0) {
@@ -106,8 +122,9 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
 
     /**
      * @dev Purchase/use a media asset with automatic royalty distribution
+     * Returns the decryption key to the buyer
      */
-    function useAsset(uint256 tokenId) public payable {
+    function useAsset(uint256 tokenId) public payable returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "Asset does not exist");
         require(msg.value > 0, "Payment required");
         
@@ -130,6 +147,21 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         
         hasUsedAsset[tokenId][msg.sender] = true;
         emit AssetUsed(tokenId, msg.sender, msg.value);
+        
+        // Release decryption key to buyer
+        string memory key = decryptionKeys[tokenId];
+        emit DecryptionKeyReleased(tokenId, msg.sender, key);
+        
+        return key;
+    }
+    
+    /**
+     * @dev Get decryption key if user has purchased the asset
+     */
+    function getDecryptionKey(uint256 tokenId) public view returns (string memory) {
+        require(hasUsedAsset[tokenId][msg.sender] || ownerOf(tokenId) == msg.sender || mediaAssets[tokenId].creator == msg.sender, 
+                "You must purchase this asset first");
+        return decryptionKeys[tokenId];
     }
 
     /**

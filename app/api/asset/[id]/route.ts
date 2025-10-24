@@ -27,6 +27,7 @@ const CONTRACT_ABI = [
       {
         "components": [
           { "internalType": "string", "name": "ipfsHash", "type": "string" },
+          { "internalType": "string", "name": "previewHash", "type": "string" },
           { "internalType": "string", "name": "mediaType", "type": "string" },
           { "internalType": "uint256", "name": "uploadTimestamp", "type": "uint256" },
           { "internalType": "address", "name": "creator", "type": "address" },
@@ -69,6 +70,7 @@ export async function GET(
 
     return NextResponse.json({
       ipfsHash: asset.ipfsHash,
+      previewHash: asset.previewHash,
       mediaType: asset.mediaType,
       uploadTimestamp: asset.uploadTimestamp.toString(),
       creator: asset.creator,

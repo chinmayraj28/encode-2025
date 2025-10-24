@@ -3,18 +3,21 @@
 import { useState } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { uploadFileToPinata, uploadJSONToPinata, getPinataUrl } from '@/lib/pinata';
+import { generateEncryptionKey, encryptFile } from '@/lib/encryption';
 import { parseEther } from 'viem';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
-// Contract ABI (simplified for minting)
+// Contract ABI (updated for encryption support)
 const CONTRACT_ABI = [
   {
     "inputs": [
       { "internalType": "string", "name": "ipfsHash", "type": "string" },
+      { "internalType": "string", "name": "previewHash", "type": "string" },
       { "internalType": "string", "name": "mediaType", "type": "string" },
       { "internalType": "string", "name": "tokenURI", "type": "string" },
       { "internalType": "uint256", "name": "royaltyPercentage", "type": "uint256" },
+      { "internalType": "string", "name": "encryptionKey", "type": "string" },
       {
         "components": [
           { "internalType": "address", "name": "wallet", "type": "address" },
@@ -74,23 +77,43 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
     setCollaborators(updated);
   };
 
-  const uploadToIPFS = async (file: File, metadata: any): Promise<string> => {
-    // Upload the main file to Pinata
-    const fileUpload = await uploadFileToPinata(file);
+  const uploadToIPFS = async (file: File, metadata: any): Promise<{ metadataCID: string; fileCID: string; encryptionKey: string }> => {
+    // Generate encryption key
+    const encryptionKey = generateEncryptionKey();
+    
+    // Encrypt the file
+    setUploadStatus('🔒 Encrypting file...');
+    const encryptedBlob = await encryptFile(file, encryptionKey);
+    const encryptedFile = new File([encryptedBlob], `${file.name}.encrypted`, { type: 'application/octet-stream' });
+    
+    // Upload encrypted file to Pinata
+    setUploadStatus('📤 Uploading encrypted file to IPFS...');
+    const fileUpload = await uploadFileToPinata(encryptedFile);
     const fileCID = fileUpload.cid;
     
-    // Create metadata with file reference
+    // For now, use original file as preview (in production, create watermarked version)
+    // TODO: Generate watermarked/low-quality preview
+    setUploadStatus('📤 Uploading preview to IPFS...');
+    const previewUpload = await uploadFileToPinata(file);
+    const previewCID = previewUpload.cid;
+    
+    // Create metadata with file references
     const metadataWithFile = {
       ...metadata,
-      file: `ipfs://${fileCID}`,
+      file: `ipfs://${fileCID}`,              // Encrypted full file
       fileUrl: getPinataUrl(fileCID),
+      preview: `ipfs://${previewCID}`,       // Preview (unencrypted for demo)
+      previewUrl: getPinataUrl(previewCID),
+      encrypted: true,
+      mimeType: file.type,
     };
     
     // Upload metadata JSON to Pinata
+    setUploadStatus('📤 Uploading metadata to IPFS...');
     const metadataUpload = await uploadJSONToPinata(metadataWithFile);
     const metadataCID = metadataUpload.cid;
 
-    return metadataCID;
+    return { metadataCID, fileCID, encryptionKey };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,7 +147,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
 
     try {
       setIsUploading(true);
-      setUploadStatus('📤 Uploading to IPFS via Pinata...');
+      setUploadStatus('📤 Preparing upload...');
 
       // Prepare metadata
       const metadata = {
@@ -137,12 +160,11 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         collaborators: collaborators,
       };
 
-      // Upload to IPFS via Pinata
-      const metadataCID = await uploadToIPFS(file, metadata);
-      const ipfsHash = metadataCID;
+      // Upload to IPFS with encryption
+      const { metadataCID, fileCID, encryptionKey } = await uploadToIPFS(file, metadata);
       const tokenURI = `ipfs://${metadataCID}`;
 
-      setUploadStatus('✅ Uploaded to IPFS via Pinata! Now minting NFT...');
+      setUploadStatus('✅ Uploaded to IPFS! Now minting NFT...');
 
       // Convert collaborators to contract format (shares in basis points)
       const contractCollaborators = collaborators.map(c => ({
@@ -150,16 +172,18 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         sharePercentage: BigInt(c.sharePercentage * 100), // Convert to basis points
       }));
 
-      // Mint NFT on blockchain
+      // Mint NFT on blockchain with encryption key
       writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'mintMediaAsset',
         args: [
-          ipfsHash,
+          fileCID,                              // Encrypted file hash
+          metadataCID,                          // Preview hash (using metadata for now)
           mediaType,
           tokenURI,
-          BigInt(royaltyPercentage * 100), // Convert to basis points (5% = 500)
+          BigInt(royaltyPercentage * 100),      // Convert to basis points (5% = 500)
+          encryptionKey,                        // Store encryption key in contract
           contractCollaborators,
         ],
       });
