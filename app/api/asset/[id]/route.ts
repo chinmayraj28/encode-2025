@@ -42,6 +42,13 @@ const CONTRACT_ABI = [
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+    "name": "tokenURI",
+    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const;
 
@@ -68,6 +75,14 @@ export async function GET(
       args: [tokenId],
     });
 
+    // Also fetch tokenURI to get metadata
+    const tokenURI = await client.readContract({
+      address: CONTRACT_ADDRESS,
+      abi: CONTRACT_ABI,
+      functionName: 'tokenURI',
+      args: [tokenId],
+    });
+
     return NextResponse.json({
       ipfsHash: asset.ipfsHash,
       previewHash: asset.previewHash,
@@ -77,6 +92,7 @@ export async function GET(
       price: asset.price.toString(),
       usageCount: asset.usageCount.toString(),
       totalRevenue: asset.totalRevenue.toString(),
+      tokenURI: tokenURI,
     });
   } catch (error: any) {
     console.error('Error fetching asset:', error);

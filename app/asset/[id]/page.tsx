@@ -105,15 +105,20 @@ export default function AssetPage() {
           const data = await response.json();
           setAsset({ ...data, tokenId: Number(tokenId) });
 
-          // Fetch IPFS metadata
-          try {
-            const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${data.ipfsHash}`);
-            if (metadataResponse.ok) {
-              const metadataJson = await metadataResponse.json();
-              setMetadata(metadataJson);
+          // Fetch IPFS metadata from tokenURI
+          if (data.tokenURI) {
+            try {
+              // Extract CID from ipfs:// URI
+              const metadataCID = data.tokenURI.replace('ipfs://', '');
+              const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${metadataCID}`);
+              if (metadataResponse.ok) {
+                const metadataJson = await metadataResponse.json();
+                console.log('Fetched metadata:', metadataJson);
+                setMetadata(metadataJson);
+              }
+            } catch (err) {
+              console.error('Error fetching metadata:', err);
             }
-          } catch (err) {
-            console.error('Error fetching metadata:', err);
           }
         }
       } catch (error) {
@@ -323,12 +328,20 @@ export default function AssetPage() {
           <div className="space-y-6">
             {/* Asset Details */}
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h1 className="text-3xl font-bold capitalize">{asset.mediaType} Asset</h1>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold">
+                  {metadata?.name || `${asset.mediaType.charAt(0).toUpperCase() + asset.mediaType.slice(1)} Asset`}
+                </h1>
                 <span className="text-lg bg-purple-600 px-4 py-2 rounded-full">
                   #{asset.tokenId}
                 </span>
               </div>
+
+              {metadata?.description && (
+                <p className="text-gray-300 mb-6 pb-6 border-b border-gray-700">
+                  {metadata.description}
+                </p>
+              )}
 
               <div className="space-y-4">
                 <InfoRow label="Creator" value={asset.creator} isAddress />
