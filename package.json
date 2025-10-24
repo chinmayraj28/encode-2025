@@ -1,0 +1,52 @@
+{
+  "name": "artist-blockchain-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "compile": "hardhat compile",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network arbitrumSepolia",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost"
+  },
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "^2.1.0",
+    "@tanstack/react-query": "^5.51.0",
+    "ethers": "^5.8.0",
+    "next": "14.2.5",
+    "pinata": "^2.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "viem": "^2.17.0",
+    "wagmi": "^2.12.0"
+  },
+  "devDependencies": {
+    "@ethersproject/providers": "^5.8.0",
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.6",
+    "@nomicfoundation/hardhat-network-helpers": "^1.1.0",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@openzeppelin/contracts": "^5.4.0",
+    "@typechain/ethers-v5": "^10.2.1",
+    "@typechain/hardhat": "^6.1.6",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.19",
+    "chai": "^4.5.0",
+    "dotenv": "^17.2.3",
+    "hardhat": "^2.22.0",
+    "hardhat-gas-reporter": "^1.0.10",
+    "postcss": "^8.4.39",
+    "solidity-coverage": "^0.8.16",
+    "tailwindcss": "^3.4.6",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5"
+  }
+}
