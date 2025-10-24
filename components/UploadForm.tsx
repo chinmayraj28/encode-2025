@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { uploadFileToPinata, uploadJSONToPinata, getPinataUrl } from '@/lib/pinata';
 import { generateEncryptionKey, encryptFile } from '@/lib/encryption';
+import { generatePreview } from '@/lib/preview-generator';
 import { parseEther } from 'viem';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -16,7 +17,7 @@ const CONTRACT_ABI = [
       { "internalType": "string", "name": "previewHash", "type": "string" },
       { "internalType": "string", "name": "mediaType", "type": "string" },
       { "internalType": "string", "name": "tokenURI", "type": "string" },
-      { "internalType": "uint256", "name": "royaltyPercentage", "type": "uint256" },
+      { "internalType": "uint256", "name": "price", "type": "uint256" },
       { "internalType": "string", "name": "encryptionKey", "type": "string" },
       {
         "components": [
@@ -46,7 +47,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
   const [mediaType, setMediaType] = useState<string>('audio');
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
-  const [royaltyPercentage, setRoyaltyPercentage] = useState<number>(5);
+  const [price, setPrice] = useState<string>('0.01');
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
@@ -91,10 +92,13 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
     const fileUpload = await uploadFileToPinata(encryptedFile);
     const fileCID = fileUpload.cid;
     
-    // For now, use original file as preview (in production, create watermarked version)
-    // TODO: Generate watermarked/low-quality preview
+    // Generate preview (watermarked/degraded version)
+    setUploadStatus('🎬 Generating preview...');
+    const previewFile = await generatePreview(file, metadata.mediaType);
+    
+    // Upload preview to IPFS (unencrypted, for public browsing)
     setUploadStatus('📤 Uploading preview to IPFS...');
-    const previewUpload = await uploadFileToPinata(file);
+    const previewUpload = await uploadFileToPinata(previewFile);
     const previewCID = previewUpload.cid;
     
     // Create metadata with file references
@@ -156,7 +160,6 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         mediaType: mediaType,
         creator: address,
         timestamp: new Date().toISOString(),
-        royaltyPercentage: royaltyPercentage,
         collaborators: collaborators,
       };
 
@@ -178,7 +181,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         previewCID,
         mediaType,
         tokenURI,
-        royaltyPercentage: royaltyPercentage * 100,
+        price: parseEther(price),
         encryptionKey: encryptionKey.substring(0, 10) + '...',
         collaborators: contractCollaborators,
       });
@@ -190,11 +193,11 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         args: [
           fileCID,                              // ipfsHash: Encrypted file hash
           previewCID,                           // previewHash: Preview file hash (unencrypted)
-          mediaType,
-          tokenURI,
-          BigInt(royaltyPercentage * 100),      // Convert to basis points (5% = 500)
-          encryptionKey,                        // Store encryption key in contract
-          contractCollaborators,
+          mediaType,                            // mediaType
+          tokenURI,                             // tokenURI
+          parseEther(price),                    // price: Price in wei
+          encryptionKey,                        // encryptionKey: Store encryption key in contract
+          contractCollaborators,                // collaborators
         ],
       });
 
@@ -239,6 +242,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
       setFile(null);
       setTitle('');
       setDescription('');
+      setPrice('0.01');
       setCollaborators([]);
       
       // Notify parent
@@ -311,24 +315,26 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
             {file && <p className="text-sm text-gray-400 mt-2">Selected: {file.name}</p>}
           </div>
 
-          {/* Royalty Percentage */}
+          {/* Price */}
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Royalty Percentage: {royaltyPercentage}%
-            </label>
+            <label className="block text-sm font-medium mb-2">Price (ETH) *</label>
             <input
-              type="range"
-              min="0"
-              max="20"
-              step="0.5"
-              value={royaltyPercentage}
-              onChange={(e) => setRoyaltyPercentage(parseFloat(e.target.value))}
-              className="w-full"
+              type="number"
+              step="0.001"
+              min="0.001"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
+              placeholder="0.01"
+              required
             />
             <p className="text-xs text-gray-400 mt-1">
-              How much you earn when others use your asset
+              How much buyers pay to access your full asset
             </p>
           </div>
+
+          {/* Note: Royalty field hidden - payment goes 100% to creator/collaborators */}
+          {/* If you have collaborators, the payment is split based on their share percentages */}
 
           {/* Collaborators */}
           <div>

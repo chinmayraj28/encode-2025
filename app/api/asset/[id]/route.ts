@@ -31,7 +31,7 @@ const CONTRACT_ABI = [
           { "internalType": "string", "name": "mediaType", "type": "string" },
           { "internalType": "uint256", "name": "uploadTimestamp", "type": "uint256" },
           { "internalType": "address", "name": "creator", "type": "address" },
-          { "internalType": "uint256", "name": "royaltyPercentage", "type": "uint256" },
+          { "internalType": "uint256", "name": "price", "type": "uint256" },
           { "internalType": "uint256", "name": "usageCount", "type": "uint256" },
           { "internalType": "uint256", "name": "totalRevenue", "type": "uint256" }
         ],
@@ -74,7 +74,7 @@ export async function GET(
       mediaType: asset.mediaType,
       uploadTimestamp: asset.uploadTimestamp.toString(),
       creator: asset.creator,
-      royaltyPercentage: asset.royaltyPercentage.toString(),
+      price: asset.price.toString(),
       usageCount: asset.usageCount.toString(),
       totalRevenue: asset.totalRevenue.toString(),
     });

@@ -231,7 +231,6 @@ function AssetCard({
         
         <div className="space-y-2 text-sm text-gray-400 mb-4">
           <p>Creator: <span className="text-purple-400">{formatAddress(asset.creator)}</span></p>
-          <p>Royalty: <span className="text-green-400">{Number(asset.royaltyPercentage) / 100}%</span></p>
           <p>Uses: <span className="text-blue-400">{asset.usageCount.toString()}</span></p>
           <p>Revenue: <span className="text-yellow-400">{formatEther(asset.totalRevenue)} ETH</span></p>
         </div>

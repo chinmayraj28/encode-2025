@@ -19,7 +19,7 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         string mediaType;       // "audio", "visual", "vfx", "sfx"
         uint256 uploadTimestamp;
         address creator;
-        uint256 royaltyPercentage; // Royalty percentage (e.g., 500 = 5%)
+        uint256 price;          // Price in wei (set by creator)
         uint256 usageCount;
         uint256 totalRevenue;
     }
@@ -47,8 +47,7 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         uint256 indexed tokenId,
         address indexed creator,
         string ipfsHash,
-        string mediaType,
-        uint256 royaltyPercentage
+        string mediaType
     );
     
     event AssetUsed(
@@ -79,12 +78,10 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
         string memory previewHash,
         string memory mediaType,
         string memory tokenURI,
-        uint256 royaltyPercentage,
+        uint256 price,
         string memory encryptionKey,
         Collaborator[] memory _collaborators
     ) public returns (uint256) {
-        require(royaltyPercentage <= 10000, "Royalty too high"); // Max 100%
-        
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter++;
         
@@ -97,7 +94,7 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
             mediaType: mediaType,
             uploadTimestamp: block.timestamp,
             creator: msg.sender,
-            royaltyPercentage: royaltyPercentage,
+            price: price,
             usageCount: 0,
             totalRevenue: 0
         });
@@ -115,34 +112,33 @@ contract MediaAssetNFT is ERC721, ERC721URIStorage, Ownable {
             require(totalShare == 10000, "Shares must equal 100%");
         }
         
-        emit MediaAssetMinted(tokenId, msg.sender, ipfsHash, mediaType, royaltyPercentage);
+        emit MediaAssetMinted(tokenId, msg.sender, ipfsHash, mediaType);
         
         return tokenId;
     }
 
     /**
-     * @dev Purchase/use a media asset with automatic royalty distribution
+     * @dev Purchase/use a media asset with automatic payment distribution
      * Returns the decryption key to the buyer
+     * Payment is distributed among collaborators or goes entirely to creator
      */
     function useAsset(uint256 tokenId) public payable returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "Asset does not exist");
-        require(msg.value > 0, "Payment required");
-        
         MediaAsset storage asset = mediaAssets[tokenId];
+        require(msg.value >= asset.price, "Insufficient payment");
+        
         asset.usageCount++;
         asset.totalRevenue += msg.value;
         
-        // Calculate royalty
-        uint256 royaltyAmount = (msg.value * asset.royaltyPercentage) / 10000;
-        
-        // Distribute to collaborators or single creator
+        // Distribute payment to collaborators or single creator
         if (collaborators[tokenId].length > 0) {
-            _distributeToCollaborators(tokenId, royaltyAmount);
+            // Split payment among collaborators based on their shares
+            _distributeToCollaborators(tokenId, msg.value);
         } else {
-            // Send to creator
-            (bool success, ) = asset.creator.call{value: royaltyAmount}("");
-            require(success, "Royalty payment failed");
-            emit RoyaltyPaid(tokenId, asset.creator, royaltyAmount);
+            // Send entire payment to creator
+            (bool success, ) = asset.creator.call{value: msg.value}("");
+            require(success, "Payment to creator failed");
+            emit RoyaltyPaid(tokenId, asset.creator, msg.value);
         }
         
         hasUsedAsset[tokenId][msg.sender] = true;

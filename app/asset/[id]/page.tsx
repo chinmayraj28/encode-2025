@@ -43,7 +43,7 @@ interface MediaAsset {
   mediaType: string;
   uploadTimestamp: bigint;
   creator: string;
-  royaltyPercentage: bigint;
+  price: bigint;
   usageCount: bigint;
   totalRevenue: bigint;
 }
@@ -54,7 +54,6 @@ export default function AssetPage() {
   const { address, isConnected } = useAccount();
   const [asset, setAsset] = useState<MediaAsset | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentAmount, setPaymentAmount] = useState('0.001');
   const [metadata, setMetadata] = useState<any>(null);
   const [decryptionKey, setDecryptionKey] = useState<string>('');
   const [isDecrypting, setIsDecrypting] = useState(false);
@@ -128,14 +127,14 @@ export default function AssetPage() {
   }, [tokenId]);
 
   const handleUseAsset = () => {
-    if (!CONTRACT_ADDRESS || !asset) return;
+    if (!CONTRACT_ADDRESS || !asset || !asset.price) return;
 
     writeContract({
       address: CONTRACT_ADDRESS,
       abi: CONTRACT_ABI,
       functionName: 'useAsset',
       args: [BigInt(asset.tokenId)],
-      value: parseEther(paymentAmount),
+      value: asset.price, // Use the price set by the creator
     });
   };
 
@@ -160,14 +159,38 @@ export default function AssetPage() {
       const encryptedBlob = await response.blob();
       setDecryptionStatus('🔓 Decrypting file...');
 
+      // Determine MIME type from metadata or media type
+      let mimeType = metadata?.mimeType || 'application/octet-stream';
+      
+      // If no MIME type in metadata, infer from media type
+      if (mimeType === 'application/octet-stream') {
+        switch (asset.mediaType.toLowerCase()) {
+          case 'audio':
+            mimeType = 'audio/mpeg';
+            break;
+          case 'visual':
+            mimeType = 'image/png';
+            break;
+          case 'vfx':
+          case 'video':
+            mimeType = 'video/mp4';
+            break;
+          case 'sfx':
+            mimeType = 'audio/wav';
+            break;
+        }
+      }
+
       // Decrypt the file
-      const mimeType = metadata?.mimeType || 'application/octet-stream';
       const decryptedBlob = await decryptFile(encryptedBlob, decryptionKey, mimeType);
 
       setDecryptionStatus('💾 Downloading decrypted file...');
 
+      // Determine file extension
+      const extension = mimeType.split('/')[1] || 'bin';
+      const fileName = `${metadata?.name || `asset-${asset.tokenId}`}.${extension}`;
+
       // Download the decrypted file
-      const fileName = metadata?.name || `asset-${asset.tokenId}`;
       downloadDecryptedFile(decryptedBlob, fileName);
 
       setDecryptionStatus('✅ File decrypted and downloaded successfully!');
@@ -175,7 +198,7 @@ export default function AssetPage() {
       // Clear status after 5 seconds
       setTimeout(() => setDecryptionStatus(''), 5000);
     } catch (error: any) {
-      console.error('Decryption error:', error);
+      console.error('❌ Decryption error:', error);
       setDecryptionStatus(`❌ Decryption failed: ${error.message}`);
     } finally {
       setIsDecrypting(false);
@@ -309,7 +332,9 @@ export default function AssetPage() {
 
               <div className="space-y-4">
                 <InfoRow label="Creator" value={asset.creator} isAddress />
-                <InfoRow label="Royalty Fee" value={`${Number(asset.royaltyPercentage) / 100}%`} highlight="green" />
+                {asset.price !== undefined && (
+                  <InfoRow label="Price" value={`${formatEther(asset.price)} ETH`} highlight="purple" />
+                )}
                 <InfoRow label="Total Uses" value={asset.usageCount.toString()} highlight="blue" />
                 <InfoRow label="Total Revenue" value={`${formatEther(asset.totalRevenue)} ETH`} highlight="yellow" />
                 <InfoRow 
@@ -349,52 +374,70 @@ export default function AssetPage() {
                     </div>
                     
                     <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-                      <p className="text-xs text-gray-400 mb-2">Your Decryption Key:</p>
-                      <p className="text-xs font-mono bg-gray-800 px-3 py-2 rounded break-all">
-                        {decryptionKey.substring(0, 32)}...
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-gray-400">Your Decryption Key:</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(decryptionKey);
+                            alert('✅ Decryption key copied to clipboard!');
+                          }}
+                          className="text-xs bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded transition-colors"
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                      <p className="text-xs font-mono bg-gray-800 px-3 py-2 rounded break-all select-all">
+                        {decryptionKey}
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
-                        💡 This key is stored securely in the smart contract
+                        💡 This key is stored securely in the smart contract and can be retrieved anytime
                       </p>
                     </div>
                   </div>
                 ) : (
                   <>
                     <p className="text-gray-300 mb-6">
-                      Purchase this encrypted asset. Upon payment, you'll receive the decryption key to unlock the full file.
+                      Purchase this encrypted asset for <span className="text-purple-400 font-bold text-xl">{asset.price ? formatEther(asset.price) : '0'} ETH</span>. Upon payment, you'll receive the decryption key to unlock the full file.
                     </p>
 
                     <div className="space-y-4">
-                      <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
-                        <p className="text-blue-400 font-semibold mb-2">🔒 File Protection</p>
-                        <p className="text-sm text-gray-300">
-                          The full file is encrypted with AES-256. Only buyers receive the decryption key stored in the smart contract.
-                        </p>
-                      </div>
+                      {asset.price !== undefined ? (
+                        <>
+                          <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-4">
+                            <p className="text-purple-400 font-semibold mb-2">💰 Purchase Price</p>
+                            <p className="text-3xl font-bold text-white">{formatEther(asset.price)} ETH</p>
+                            <p className="text-sm text-gray-400 mt-2">
+                              Set by creator
+                            </p>
+                          </div>
 
-                      <div>
-                        <label className="block text-sm text-gray-400 mb-2">Payment Amount (ETH)</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={paymentAmount}
-                          onChange={(e) => setPaymentAmount(e.target.value)}
-                          className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
-                          placeholder="0.001"
-                        />
-                      </div>
+                          <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                            <p className="text-blue-400 font-semibold mb-2">🔒 File Protection</p>
+                            <p className="text-sm text-gray-300">
+                              The full file is encrypted with AES-256. Only buyers receive the decryption key stored in the smart contract.
+                            </p>
+                          </div>
 
-                      <button
-                        onClick={handleUseAsset}
-                        disabled={isPending || isConfirming}
-                        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all"
-                      >
-                        {isPending ? '⏳ Confirming...' : isConfirming ? '⏳ Processing...' : '🚀 Purchase & Get Decryption Key'}
-                      </button>
+                          <button
+                            onClick={handleUseAsset}
+                            disabled={isPending || isConfirming}
+                            className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all"
+                          >
+                            {isPending ? '⏳ Confirming...' : isConfirming ? '⏳ Processing...' : `🚀 Purchase for ${formatEther(asset.price)} ETH`}
+                          </button>
 
-                      {isSuccess && !decryptionKey && (
-                        <div className="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
-                          ⏳ Transaction successful! Waiting for decryption key...
+                          {isSuccess && !decryptionKey && (
+                            <div className="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
+                              ⏳ Transaction successful! Waiting for decryption key...
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+                          <p className="text-red-400 font-semibold mb-2">⚠️ Legacy Asset</p>
+                          <p className="text-sm text-gray-300">
+                            This asset was created with an older version of the contract and cannot be purchased. Please upload new assets to use the pricing system.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -420,9 +463,12 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
   const [previewUrl, setPreviewUrl] = useState<string>('');
 
   useEffect(() => {
-    // Try to get the actual file URL from metadata
-    if (metadata?.image) {
-      // Handle both IPFS URLs and regular URLs
+    // Priority 1: Use the previewHash directly (this is the unencrypted preview file)
+    if (ipfsHash) {
+      setPreviewUrl(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+    }
+    // Priority 2: Try metadata image/animation_url as fallback
+    else if (metadata?.image) {
       const imageUrl = metadata.image.startsWith('ipfs://')
         ? `https://gateway.pinata.cloud/ipfs/${metadata.image.replace('ipfs://', '')}`
         : metadata.image;
@@ -433,7 +479,7 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
         : metadata.animation_url;
       setPreviewUrl(animUrl);
     }
-  }, [metadata]);
+  }, [ipfsHash, metadata]);
 
   const renderPreview = () => {
     if (!previewUrl) {
@@ -452,6 +498,17 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
           <div className="bg-gray-900 rounded-lg p-8">
             <div className="text-center mb-4">
               <span className="text-6xl">🎵</span>
+              <div className="mt-4 bg-red-900/40 border border-red-700 rounded-lg p-3">
+                <p className="text-red-400 text-sm font-semibold mb-1">
+                  ⚠️ HEAVILY WATERMARKED PREVIEW ⚠️
+                </p>
+                <p className="text-xs text-gray-300">
+                  First 20 seconds only • LOUD beeps every 2 seconds • Mono quality
+                </p>
+                <p className="text-xs text-green-400 mt-2">
+                  ✅ Purchase to get full, clean, high-quality version
+                </p>
+              </div>
             </div>
             <audio controls className="w-full">
               <source src={previewUrl} />
@@ -468,6 +525,14 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
         if (isVideo) {
           return (
             <div className="bg-gray-900 rounded-lg overflow-hidden">
+              <div className="bg-yellow-900/30 border-b border-yellow-700 p-3">
+                <p className="text-yellow-400 text-sm font-semibold text-center">
+                  ⚠️ Preview Video (Low Quality)
+                </p>
+                <p className="text-xs text-gray-400 text-center">
+                  First 30s • Reduced resolution • Purchase for full HD version
+                </p>
+              </div>
               <video controls className="w-full">
                 <source src={previewUrl} />
                 Your browser does not support the video element.
@@ -477,15 +542,25 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
         } else {
           return (
             <div className="bg-gray-900 rounded-lg overflow-hidden">
-              <img 
-                src={previewUrl} 
-                alt="Asset preview"
-                className="w-full h-auto"
-                onError={(e) => {
-                  // If image fails to load, try as video
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <div className="bg-red-900/40 border-b border-red-700 p-3">
+                <p className="text-red-400 text-sm font-semibold text-center">
+                  ⚠️ HEAVILY WATERMARKED PREVIEW ⚠️
+                </p>
+                <p className="text-xs text-gray-300 text-center">
+                  Low resolution (600x450 max) • 30% quality • Multiple watermarks
+                </p>
+              </div>
+              <div className="p-4">
+                <img 
+                  src={previewUrl} 
+                  alt="Asset preview"
+                  className="w-full h-auto rounded"
+                  onError={(e) => {
+                    // If image fails to load, try as video
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
             </div>
           );
         }

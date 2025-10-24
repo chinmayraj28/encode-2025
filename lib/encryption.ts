@@ -13,30 +13,42 @@ export function generateEncryptionKey(): string {
  * @param key - The encryption key (32-byte hex string)
  * @returns Encrypted file as Blob
  */
-export async function encryptFile(file: File, key: string): Promise<Blob> {
+export const encryptFile = async (file: File, key: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
+
+    reader.onload = () => {
       try {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
-        
-        // Encrypt using AES-256
-        const encrypted = CryptoJS.AES.encrypt(wordArray, key).toString();
-        
-        // Convert to Blob
-        const blob = new Blob([encrypted], { type: 'application/octet-stream' });
-        resolve(blob);
-      } catch (error) {
-        reject(error);
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        // Convert Uint8Array to WordArray for CryptoJS
+        const wordArray = CryptoJS.lib.WordArray.create(uint8Array as any);
+
+        // Encrypt using AES
+        const encrypted = CryptoJS.AES.encrypt(wordArray, key);
+        const encryptedString = encrypted.toString();
+
+        // Convert encrypted string to Blob
+        const encryptedBlob = new Blob([encryptedString], {
+          type: 'application/octet-stream',
+        });
+
+        console.log('✅ File encrypted successfully:', file.name);
+        resolve(encryptedBlob);
+      } catch (error: any) {
+        console.error('❌ Encryption error:', error);
+        reject(new Error(`Failed to encrypt file: ${error.message}`));
       }
     };
-    
-    reader.onerror = () => reject(reader.error);
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'));
+    };
+
     reader.readAsArrayBuffer(file);
   });
-}
+};
 
 /**
  * Decrypt an encrypted file
@@ -45,38 +57,42 @@ export async function encryptFile(file: File, key: string): Promise<Blob> {
  * @param originalMimeType - Original file MIME type (e.g., 'audio/mp3')
  * @returns Decrypted file as Blob
  */
-export async function decryptFile(
-  encryptedBlob: Blob, 
+export const decryptFile = async (
+  encryptedBlob: Blob,
   key: string,
   originalMimeType: string = 'application/octet-stream'
-): Promise<Blob> {
+): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    
-    reader.onload = (e) => {
+
+    reader.onload = () => {
       try {
-        const encryptedString = e.target?.result as string;
-        
-        // Decrypt using AES-256
-        const decrypted = CryptoJS.AES.decrypt(encryptedString, key);
-        
-        // Convert WordArray to ArrayBuffer
-        const typedArray = wordArrayToUint8Array(decrypted);
-        
-        // Create blob with original MIME type
-        const blob = new Blob([typedArray], { type: originalMimeType });
-        resolve(blob);
-      } catch (error) {
-        reject(error);
+        const encryptedText = reader.result as string;
+
+        // Decrypt the text
+        const decrypted = CryptoJS.AES.decrypt(encryptedText, key);
+
+        // Convert WordArray back to Uint8Array
+        const decryptedUint8Array = wordArrayToUint8Array(decrypted);
+
+        // Create blob with original mime type
+        const decryptedBlob = new Blob([decryptedUint8Array], { type: originalMimeType });
+
+        console.log('✅ File decrypted successfully');
+        resolve(decryptedBlob);
+      } catch (error: any) {
+        console.error('❌ Decryption error:', error);
+        reject(new Error(`Failed to decrypt file: ${error.message}`));
       }
     };
-    
-    reader.onerror = () => reject(reader.error);
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read encrypted file'));
+    };
+
     reader.readAsText(encryptedBlob);
   });
-}
-
-/**
+};/**
  * Convert CryptoJS WordArray to Uint8Array
  */
 function wordArrayToUint8Array(wordArray: CryptoJS.lib.WordArray): Uint8Array {
