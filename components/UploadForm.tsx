@@ -135,12 +135,15 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
 
     // Validate collaborators if any
     if (collaborators.length > 0) {
-      const totalShare = collaborators.reduce((sum, c) => sum + c.sharePercentage, 0);
-      if (totalShare !== 100) {
-        setUploadStatus('❌ Collaborator shares must add up to 100%');
+      const totalCollabShare = collaborators.reduce((sum, c) => sum + c.sharePercentage, 0);
+      
+      // Check if total exceeds 100%
+      if (totalCollabShare > 100) {
+        setUploadStatus('❌ Collaborator shares cannot exceed 100%');
         return;
       }
       
+      // Validate wallet addresses
       for (const collab of collaborators) {
         if (!collab.wallet || collab.wallet.length !== 42 || !collab.wallet.startsWith('0x')) {
           setUploadStatus('❌ Invalid collaborator wallet address');
@@ -153,6 +156,33 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
       setIsUploading(true);
       setUploadStatus('📤 Preparing upload...');
 
+      // Calculate shares - if collaborators don't add to 100%, creator gets the rest
+      const totalCollabShare = collaborators.reduce((sum, c) => sum + c.sharePercentage, 0);
+      const creatorShare = 100 - totalCollabShare;
+      
+      // Build final collaborator list including creator if there are collaborators
+      let contractCollaborators: { wallet: `0x${string}`; sharePercentage: bigint }[] = [];
+      
+      if (collaborators.length > 0) {
+        // Add creator first with their share
+        if (creatorShare > 0) {
+          contractCollaborators.push({
+            wallet: address as `0x${string}`,
+            sharePercentage: BigInt(creatorShare * 100), // Convert to basis points
+          });
+        }
+        
+        // Add other collaborators
+        contractCollaborators = [
+          ...contractCollaborators,
+          ...collaborators.map(c => ({
+            wallet: c.wallet as `0x${string}`,
+            sharePercentage: BigInt(c.sharePercentage * 100),
+          }))
+        ];
+      }
+      // If no collaborators, leave array empty (creator gets 100% automatically)
+      
       // Prepare metadata
       const metadata = {
         name: title,
@@ -169,12 +199,6 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
 
       setUploadStatus('✅ Uploaded to IPFS! Now minting NFT...');
 
-      // Convert collaborators to contract format (shares in basis points)
-      const contractCollaborators = collaborators.map(c => ({
-        wallet: c.wallet as `0x${string}`,
-        sharePercentage: BigInt(c.sharePercentage * 100), // Convert to basis points
-      }));
-
       // Mint NFT on blockchain with encryption key
       console.log('📝 Minting with params:', {
         fileCID,
@@ -183,6 +207,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         tokenURI,
         price: parseEther(price),
         encryptionKey: encryptionKey.substring(0, 10) + '...',
+        creatorShare: creatorShare + '%',
         collaborators: contractCollaborators,
       });
 
@@ -339,6 +364,9 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
           {/* Collaborators */}
           <div>
             <label className="block text-sm font-medium mb-2">Collaborators (Optional)</label>
+            <p className="text-xs text-gray-400 mb-3">
+              Add collaborators to split revenue. Any remaining percentage automatically goes to you (the creator).
+            </p>
             {collaborators.map((collab, index) => (
               <div key={index} className="flex gap-2 mb-2">
                 <input
@@ -374,9 +402,33 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
               + Add Collaborator
             </button>
             {collaborators.length > 0 && (
-              <p className="text-xs text-gray-400 mt-2">
-                Total share: {collaborators.reduce((sum, c) => sum + c.sharePercentage, 0)}% (must equal 100%)
-              </p>
+              <div className="mt-3 p-3 bg-gray-900/50 border border-gray-700 rounded-lg">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-400">Collaborators total:</span>
+                  <span className={`font-semibold ${
+                    collaborators.reduce((sum, c) => sum + c.sharePercentage, 0) > 100 
+                      ? 'text-red-400' 
+                      : 'text-blue-400'
+                  }`}>
+                    {collaborators.reduce((sum, c) => sum + c.sharePercentage, 0)}%
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Your share (automatic):</span>
+                  <span className={`font-semibold ${
+                    100 - collaborators.reduce((sum, c) => sum + c.sharePercentage, 0) < 0
+                      ? 'text-red-400'
+                      : 'text-green-400'
+                  }`}>
+                    {Math.max(0, 100 - collaborators.reduce((sum, c) => sum + c.sharePercentage, 0))}%
+                  </span>
+                </div>
+                {collaborators.reduce((sum, c) => sum + c.sharePercentage, 0) > 100 && (
+                  <p className="text-xs text-red-400 mt-2">
+                    ⚠️ Total cannot exceed 100%
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
