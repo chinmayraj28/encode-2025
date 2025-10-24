@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import Link from 'next/link';
+import { decryptFile, downloadDecryptedFile } from '@/lib/encryption';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -15,12 +16,30 @@ const CONTRACT_ABI = [
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
+    "name": "getDecryptionKey",
+    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "internalType": "uint256", "name": "tokenId", "type": "uint256" },
+      { "indexed": true, "internalType": "address", "name": "buyer", "type": "address" },
+      { "indexed": false, "internalType": "string", "name": "decryptionKey", "type": "string" }
+    ],
+    "name": "DecryptionKeyReleased",
+    "type": "event"
   }
 ] as const;
 
 interface MediaAsset {
   tokenId: number;
   ipfsHash: string;
+  previewHash: string;
   mediaType: string;
   uploadTimestamp: bigint;
   creator: string;
@@ -37,11 +56,47 @@ export default function AssetPage() {
   const [loading, setLoading] = useState(true);
   const [paymentAmount, setPaymentAmount] = useState('0.001');
   const [metadata, setMetadata] = useState<any>(null);
+  const [decryptionKey, setDecryptionKey] = useState<string>('');
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptionStatus, setDecryptionStatus] = useState<string>('');
 
   const { data: hash, writeContract, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const tokenId = params.id as string;
+
+  // Check if user already has access to decryption key
+  const { data: existingKey } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    functionName: 'getDecryptionKey',
+    args: [BigInt(tokenId)],
+    account: address,
+  });
+
+  // Watch for DecryptionKeyReleased event
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESS,
+    abi: CONTRACT_ABI,
+    eventName: 'DecryptionKeyReleased',
+    onLogs(logs) {
+      logs.forEach((log) => {
+        if (log.args.buyer === address && log.args.tokenId === BigInt(tokenId)) {
+          console.log('🔑 Decryption key received:', log.args.decryptionKey);
+          setDecryptionKey(log.args.decryptionKey || '');
+          setDecryptionStatus('✅ Decryption key received! You can now download the full file.');
+        }
+      });
+    },
+  });
+
+  // Load existing key if user has already purchased
+  useEffect(() => {
+    if (existingKey && typeof existingKey === 'string' && existingKey.length > 0) {
+      setDecryptionKey(existingKey);
+      setDecryptionStatus('✅ You have access to this asset!');
+    }
+  }, [existingKey]);
 
   useEffect(() => {
     const fetchAsset = async () => {
@@ -82,6 +137,49 @@ export default function AssetPage() {
       args: [BigInt(asset.tokenId)],
       value: parseEther(paymentAmount),
     });
+  };
+
+  const handleDecryptAndDownload = async () => {
+    if (!asset || !decryptionKey) {
+      setDecryptionStatus('❌ No decryption key available');
+      return;
+    }
+
+    try {
+      setIsDecrypting(true);
+      setDecryptionStatus('📥 Downloading encrypted file from IPFS...');
+
+      // Download encrypted file from IPFS
+      const encryptedFileUrl = `https://gateway.pinata.cloud/ipfs/${asset.ipfsHash}`;
+      const response = await fetch(encryptedFileUrl);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download encrypted file');
+      }
+
+      const encryptedBlob = await response.blob();
+      setDecryptionStatus('🔓 Decrypting file...');
+
+      // Decrypt the file
+      const mimeType = metadata?.mimeType || 'application/octet-stream';
+      const decryptedBlob = await decryptFile(encryptedBlob, decryptionKey, mimeType);
+
+      setDecryptionStatus('💾 Downloading decrypted file...');
+
+      // Download the decrypted file
+      const fileName = metadata?.name || `asset-${asset.tokenId}`;
+      downloadDecryptedFile(decryptedBlob, fileName);
+
+      setDecryptionStatus('✅ File decrypted and downloaded successfully!');
+      
+      // Clear status after 5 seconds
+      setTimeout(() => setDecryptionStatus(''), 5000);
+    } catch (error: any) {
+      console.error('Decryption error:', error);
+      setDecryptionStatus(`❌ Decryption failed: ${error.message}`);
+    } finally {
+      setIsDecrypting(false);
+    }
   };
 
   const getMediaIcon = (mediaType: string) => {
@@ -134,9 +232,9 @@ export default function AssetPage() {
                 <span className="text-6xl">{getMediaIcon(asset.mediaType)}</span>
               </div>
 
-              {/* IPFS File Preview */}
+              {/* IPFS File Preview - Using previewHash for preview */}
               <MediaPreview 
-                ipfsHash={asset.ipfsHash} 
+                ipfsHash={asset.previewHash || asset.ipfsHash} 
                 mediaType={asset.mediaType}
                 metadata={metadata}
               />
@@ -144,22 +242,34 @@ export default function AssetPage() {
               {/* IPFS Links */}
               <div className="mt-6 space-y-2">
                 <a
-                  href={`https://gateway.pinata.cloud/ipfs/${asset.ipfsHash}`}
+                  href={`https://gateway.pinata.cloud/ipfs/${asset.previewHash || asset.ipfsHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-center font-semibold transition-all"
                 >
-                  🔗 Open in IPFS Gateway
+                  🔗 Open Preview in IPFS
                 </a>
-                <a
-                  href={`https://ipfs.io/ipfs/${asset.ipfsHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-center font-semibold transition-all"
-                >
-                  📦 View on IPFS.io
-                </a>
+                {decryptionKey && (
+                  <button
+                    onClick={handleDecryptAndDownload}
+                    disabled={isDecrypting}
+                    className="block w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg text-center font-semibold transition-all"
+                  >
+                    {isDecrypting ? '⏳ Decrypting...' : '� Download Full Version (Decrypted)'}
+                  </button>
+                )}
               </div>
+
+              {/* Decryption Status */}
+              {decryptionStatus && (
+                <div className={`mt-4 p-4 rounded-lg ${
+                  decryptionStatus.includes('❌') ? 'bg-red-900/50 border border-red-700' : 
+                  decryptionStatus.includes('✅') ? 'bg-green-900/50 border border-green-700' :
+                  'bg-blue-900/50 border border-blue-700'
+                }`}>
+                  <p className="text-sm text-center">{decryptionStatus}</p>
+                </div>
+              )}
             </div>
 
             {/* Metadata Card */}
@@ -218,38 +328,78 @@ export default function AssetPage() {
             {/* Purchase/Use Card */}
             {isConnected ? (
               <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm border border-purple-700 rounded-xl p-6">
-                <h3 className="text-2xl font-bold mb-4">💰 Use This Asset</h3>
-                <p className="text-gray-300 mb-6">
-                  Pay to use this asset. The creator receives royalties automatically via smart contract.
-                </p>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Payment Amount (ETH)</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={paymentAmount}
-                      onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
-                      placeholder="0.001"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleUseAsset}
-                    disabled={isPending || isConfirming}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all"
-                  >
-                    {isPending ? '⏳ Confirming...' : isConfirming ? '⏳ Processing...' : '🚀 Purchase & Use Asset'}
-                  </button>
-
-                  {isSuccess && (
-                    <div className="bg-green-900/50 border border-green-700 rounded-lg p-4 text-center">
-                      ✅ Transaction successful! Usage recorded on blockchain.
+                <h3 className="text-2xl font-bold mb-4">
+                  {decryptionKey ? '✅ You Own This Asset' : '💰 Purchase This Asset'}
+                </h3>
+                
+                {decryptionKey ? (
+                  <div className="space-y-4">
+                    <div className="bg-green-900/30 border border-green-700 rounded-lg p-4">
+                      <p className="text-green-400 font-semibold mb-2">🔑 Access Granted!</p>
+                      <p className="text-sm text-gray-300 mb-4">
+                        You have purchased this asset and can now download the full, unencrypted version.
+                      </p>
+                      <button
+                        onClick={handleDecryptAndDownload}
+                        disabled={isDecrypting}
+                        className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-bold transition-all"
+                      >
+                        {isDecrypting ? '⏳ Decrypting...' : '🔓 Download Full File'}
+                      </button>
                     </div>
-                  )}
-                </div>
+                    
+                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                      <p className="text-xs text-gray-400 mb-2">Your Decryption Key:</p>
+                      <p className="text-xs font-mono bg-gray-800 px-3 py-2 rounded break-all">
+                        {decryptionKey.substring(0, 32)}...
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        💡 This key is stored securely in the smart contract
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-gray-300 mb-6">
+                      Purchase this encrypted asset. Upon payment, you'll receive the decryption key to unlock the full file.
+                    </p>
+
+                    <div className="space-y-4">
+                      <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                        <p className="text-blue-400 font-semibold mb-2">🔒 File Protection</p>
+                        <p className="text-sm text-gray-300">
+                          The full file is encrypted with AES-256. Only buyers receive the decryption key stored in the smart contract.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-gray-400 mb-2">Payment Amount (ETH)</label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500"
+                          placeholder="0.001"
+                        />
+                      </div>
+
+                      <button
+                        onClick={handleUseAsset}
+                        disabled={isPending || isConfirming}
+                        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all"
+                      >
+                        {isPending ? '⏳ Confirming...' : isConfirming ? '⏳ Processing...' : '🚀 Purchase & Get Decryption Key'}
+                      </button>
+
+                      {isSuccess && !decryptionKey && (
+                        <div className="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
+                          ⏳ Transaction successful! Waiting for decryption key...
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 text-center">

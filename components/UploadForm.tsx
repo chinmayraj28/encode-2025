@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { uploadFileToPinata, uploadJSONToPinata, getPinataUrl } from '@/lib/pinata';
 import { generateEncryptionKey, encryptFile } from '@/lib/encryption';
@@ -51,9 +51,9 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
 
-  const { data: hash, writeContract, isPending } = useWriteContract();
+  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract();
   
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, error: confirmError } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -77,7 +77,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
     setCollaborators(updated);
   };
 
-  const uploadToIPFS = async (file: File, metadata: any): Promise<{ metadataCID: string; fileCID: string; encryptionKey: string }> => {
+  const uploadToIPFS = async (file: File, metadata: any): Promise<{ metadataCID: string; fileCID: string; previewCID: string; encryptionKey: string }> => {
     // Generate encryption key
     const encryptionKey = generateEncryptionKey();
     
@@ -113,7 +113,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
     const metadataUpload = await uploadJSONToPinata(metadataWithFile);
     const metadataCID = metadataUpload.cid;
 
-    return { metadataCID, fileCID, encryptionKey };
+    return { metadataCID, fileCID, previewCID, encryptionKey };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,7 +161,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
       };
 
       // Upload to IPFS with encryption
-      const { metadataCID, fileCID, encryptionKey } = await uploadToIPFS(file, metadata);
+      const { metadataCID, fileCID, previewCID, encryptionKey } = await uploadToIPFS(file, metadata);
       const tokenURI = `ipfs://${metadataCID}`;
 
       setUploadStatus('✅ Uploaded to IPFS! Now minting NFT...');
@@ -173,13 +173,23 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
       }));
 
       // Mint NFT on blockchain with encryption key
+      console.log('📝 Minting with params:', {
+        fileCID,
+        previewCID,
+        mediaType,
+        tokenURI,
+        royaltyPercentage: royaltyPercentage * 100,
+        encryptionKey: encryptionKey.substring(0, 10) + '...',
+        collaborators: contractCollaborators,
+      });
+
       writeContract({
         address: CONTRACT_ADDRESS,
         abi: CONTRACT_ABI,
         functionName: 'mintMediaAsset',
         args: [
-          fileCID,                              // Encrypted file hash
-          metadataCID,                          // Preview hash (using metadata for now)
+          fileCID,                              // ipfsHash: Encrypted file hash
+          previewCID,                           // previewHash: Preview file hash (unencrypted)
           mediaType,
           tokenURI,
           BigInt(royaltyPercentage * 100),      // Convert to basis points (5% = 500)
@@ -191,28 +201,52 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
       setUploadStatus('⏳ Waiting for transaction confirmation...');
       
     } catch (error: any) {
-      console.error('Upload error:', error);
-      setUploadStatus(`❌ Error: ${error.message}`);
+      console.error('❌ Upload error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        cause: error.cause,
+        stack: error.stack,
+      });
+      setUploadStatus(`❌ Error: ${error.message || 'Unknown error'}`);
       setIsUploading(false);
     }
   };
 
-  // Handle successful minting
-  if (isSuccess && isUploading) {
-    setUploadStatus('🎉 Successfully minted! Your asset is now on the blockchain.');
-    setIsUploading(false);
-    
-    // Reset form
-    setFile(null);
-    setTitle('');
-    setDescription('');
-    setCollaborators([]);
-    
-    // Notify parent
-    if (onMintSuccess) {
-      onMintSuccess();
+  // Handle transaction errors
+  useEffect(() => {
+    if (writeError) {
+      console.error('❌ Write contract error:', writeError);
+      setUploadStatus(`❌ Transaction failed: ${writeError.message}`);
+      setIsUploading(false);
     }
-  }
+  }, [writeError]);
+
+  useEffect(() => {
+    if (confirmError) {
+      console.error('❌ Confirmation error:', confirmError);
+      setUploadStatus(`❌ Transaction confirmation failed: ${confirmError.message}`);
+      setIsUploading(false);
+    }
+  }, [confirmError]);
+
+  // Handle successful minting
+  useEffect(() => {
+    if (isSuccess && isUploading) {
+      setUploadStatus('🎉 Successfully minted! Your asset is now on the blockchain.');
+      setIsUploading(false);
+      
+      // Reset form
+      setFile(null);
+      setTitle('');
+      setDescription('');
+      setCollaborators([]);
+      
+      // Notify parent
+      if (onMintSuccess) {
+        onMintSuccess();
+      }
+    }
+  }, [isSuccess, isUploading, onMintSuccess]);
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-8 max-w-2xl mx-auto">
