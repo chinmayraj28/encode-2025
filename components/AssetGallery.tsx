@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { formatEther } from 'viem';
 import Link from 'next/link';
+import { IPFSImage } from './IPFSImage';
+import { IPFSAudio } from './IPFSAudio';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -89,12 +91,26 @@ export default function AssetGallery() {
               try {
                 // Extract CID from ipfs:// URI
                 const metadataCID = asset.tokenURI.replace('ipfs://', '');
-                const metadataUrl = `https://gateway.pinata.cloud/ipfs/${metadataCID}`;
-                const metadataResponse = await fetch(metadataUrl);
-                if (metadataResponse.ok) {
-                  const metadata = await metadataResponse.json();
-                  title = metadata.name;
-                  description = metadata.description;
+                
+                // Try multiple IPFS gateways
+                const gateways = [
+                  `https://gateway.pinata.cloud/ipfs/${metadataCID}`,
+                  `https://ipfs.io/ipfs/${metadataCID}`,
+                  `https://cloudflare-ipfs.com/ipfs/${metadataCID}`,
+                ];
+
+                for (const url of gateways) {
+                  try {
+                    const metadataResponse = await fetch(url);
+                    if (metadataResponse.ok) {
+                      const metadata = await metadataResponse.json();
+                      title = metadata.name;
+                      description = metadata.description;
+                      break; // Success, exit loop
+                    }
+                  } catch (err) {
+                    continue; // Try next gateway
+                  }
                 }
               } catch (metadataError) {
                 console.error(`Error fetching metadata for asset ${i}:`, metadataError);
@@ -189,26 +205,25 @@ function AssetCard({
         {/* Preview Section */}
         <div className="relative w-full h-48 bg-gray-900/50 flex items-center justify-center overflow-hidden">
           {asset.mediaType.toLowerCase() === 'visual' || asset.mediaType.toLowerCase() === 'vfx' ? (
-            <img 
-              src={`https://gateway.pinata.cloud/ipfs/${asset.previewHash}`}
+            <IPFSImage
+              ipfsHash={asset.previewHash}
               alt={asset.title || 'Asset preview'}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onError={(e) => {
-                // Fallback if image fails to load
-                e.currentTarget.style.display = 'none';
-              }}
+              fallback={
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-6xl">{getMediaIcon(asset.mediaType)}</span>
+                </div>
+              }
             />
           ) : asset.mediaType.toLowerCase() === 'audio' || asset.mediaType.toLowerCase() === 'sfx' ? (
             <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-900/30 to-blue-900/30">
               <span className="text-6xl mb-2">{getMediaIcon(asset.mediaType)}</span>
-              <audio 
-                controls 
+              <IPFSAudio
+                ipfsHash={asset.previewHash}
                 className="w-full max-w-xs"
                 onClick={(e) => e.stopPropagation()}
                 preload="none"
-              >
-                <source src={`https://gateway.pinata.cloud/ipfs/${asset.previewHash}`} type="audio/wav" />
-              </audio>
+              />
             </div>
           ) : (
             <span className="text-6xl">{getMediaIcon(asset.mediaType)}</span>

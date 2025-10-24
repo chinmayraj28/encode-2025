@@ -6,6 +6,8 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { parseEther, formatEther } from 'viem';
 import Link from 'next/link';
 import { decryptFile, downloadDecryptedFile } from '@/lib/encryption';
+import { IPFSImage } from '@/components/IPFSImage';
+import { IPFSAudio } from '@/components/IPFSAudio';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -153,15 +155,47 @@ export default function AssetPage() {
       setIsDecrypting(true);
       setDecryptionStatus('📥 Downloading encrypted file from IPFS...');
 
-      // Download encrypted file from IPFS
-      const encryptedFileUrl = `https://gateway.pinata.cloud/ipfs/${asset.ipfsHash}`;
-      const response = await fetch(encryptedFileUrl);
-      
-      if (!response.ok) {
-        throw new Error('Failed to download encrypted file');
+      // Try multiple IPFS gateways for better reliability
+      const gateways = [
+        `https://gateway.pinata.cloud/ipfs/${asset.ipfsHash}`,
+        `https://ipfs.io/ipfs/${asset.ipfsHash}`,
+        `https://cloudflare-ipfs.com/ipfs/${asset.ipfsHash}`,
+      ];
+
+      let encryptedBlob: Blob | null = null;
+      let lastError: Error | null = null;
+
+      // Try each gateway until one works
+      for (const url of gateways) {
+        try {
+          console.log(`🔄 Trying gateway: ${url}`);
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': '*/*',
+            },
+          });
+          
+          if (response.ok) {
+            encryptedBlob = await response.blob();
+            console.log(`✅ Successfully downloaded from: ${url}`);
+            break;
+          } else {
+            console.log(`⚠️ Gateway returned ${response.status}: ${url}`);
+          }
+        } catch (err: any) {
+          console.log(`❌ Gateway failed: ${url} - ${err.message}`);
+          lastError = err;
+          continue;
+        }
       }
 
-      const encryptedBlob = await response.blob();
+      if (!encryptedBlob) {
+        throw new Error(
+          lastError?.message || 
+          'Failed to download from all IPFS gateways. Please try again later.'
+        );
+      }
       setDecryptionStatus('🔓 Decrypting file...');
 
       // Determine MIME type from metadata or media type
@@ -523,10 +557,10 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
                 </p>
               </div>
             </div>
-            <audio controls className="w-full">
-              <source src={previewUrl} />
-              Your browser does not support the audio element.
-            </audio>
+            <IPFSAudio
+              ipfsHash={ipfsHash}
+              className="w-full"
+            />
           </div>
         );
 
@@ -564,14 +598,15 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
                 </p>
               </div>
               <div className="p-4">
-                <img 
-                  src={previewUrl} 
+                <IPFSImage
+                  ipfsHash={ipfsHash}
                   alt="Asset preview"
                   className="w-full h-auto rounded"
-                  onError={(e) => {
-                    // If image fails to load, try as video
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  fallback={
+                    <div className="w-full h-96 flex items-center justify-center bg-gray-800 rounded">
+                      <span className="text-gray-500">Failed to load preview</span>
+                    </div>
+                  }
                 />
               </div>
             </div>
