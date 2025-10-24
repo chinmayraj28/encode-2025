@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useAccount, useReadContract } from 'wagmi';
+import { formatEther } from 'viem';
 import Link from 'next/link';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
@@ -38,30 +38,6 @@ const CONTRACT_ABI = [
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-    "name": "useAsset",
-    "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
-    "name": "getCollaborators",
-    "outputs": [
-      {
-        "components": [
-          { "internalType": "address", "name": "wallet", "type": "address" },
-          { "internalType": "uint256", "name": "sharePercentage", "type": "uint256" }
-        ],
-        "internalType": "struct MediaAssetNFT.Collaborator[]",
-        "name": "",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
   }
 ] as const;
 
@@ -80,8 +56,6 @@ interface MediaAsset {
 export default function AssetGallery() {
   const { address, isConnected } = useAccount();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
-  const [selectedAsset, setSelectedAsset] = useState<number | null>(null);
-  const [paymentAmount, setPaymentAmount] = useState<string>('0.001');
 
   // Get total number of assets
   const { data: totalAssets, refetch: refetchTotal } = useReadContract({
@@ -89,10 +63,6 @@ export default function AssetGallery() {
     abi: CONTRACT_ABI,
     functionName: 'getTotalAssets',
   });
-
-  // Write contract for purchasing
-  const { data: hash, writeContract, isPending } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   // Fetch all assets
   useEffect(() => {
@@ -122,28 +92,6 @@ export default function AssetGallery() {
     fetchAssets();
   }, [totalAssets]);
 
-  const handleUseAsset = (tokenId: number) => {
-    if (!CONTRACT_ADDRESS) return;
-
-    writeContract({
-      address: CONTRACT_ADDRESS,
-      abi: CONTRACT_ABI,
-      functionName: 'useAsset',
-      args: [BigInt(tokenId)],
-      value: parseEther(paymentAmount),
-    });
-  };
-
-  const getMediaIcon = (mediaType: string) => {
-    switch (mediaType.toLowerCase()) {
-      case 'audio': return '🎵';
-      case 'visual': return '🎨';
-      case 'vfx': return '✨';
-      case 'sfx': return '🔊';
-      default: return '📄';
-    }
-  };
-
   if (!isConnected) {
     return (
       <div className="text-center py-12 text-gray-400">
@@ -172,11 +120,6 @@ export default function AssetGallery() {
             <AssetCard
               key={asset.tokenId}
               asset={asset}
-              onUse={handleUseAsset}
-              paymentAmount={paymentAmount}
-              setPaymentAmount={setPaymentAmount}
-              isPending={isPending}
-              isConfirming={isConfirming}
             />
           ))
         )}
@@ -186,19 +129,9 @@ export default function AssetGallery() {
 }
 
 function AssetCard({ 
-  asset, 
-  onUse, 
-  paymentAmount, 
-  setPaymentAmount,
-  isPending,
-  isConfirming
+  asset,
 }: { 
   asset: MediaAsset;
-  onUse: (tokenId: number) => void;
-  paymentAmount: string;
-  setPaymentAmount: (amount: string) => void;
-  isPending: boolean;
-  isConfirming: boolean;
 }) {
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType.toLowerCase()) {
@@ -216,8 +149,7 @@ function AssetCard({
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 hover:border-purple-500 transition-all group">
-      {/* Clickable Card Area */}
-      <Link href={`/asset/${asset.tokenId}`} className="block mb-4">
+      <Link href={`/asset/${asset.tokenId}`} className="block">
         <div className="flex items-center justify-between mb-4">
           <span className="text-4xl group-hover:scale-110 transition-transform">{getMediaIcon(asset.mediaType)}</span>
           <span className="text-xs bg-purple-600 px-3 py-1 rounded-full">
@@ -236,31 +168,9 @@ function AssetCard({
         </div>
         
         <div className="bg-purple-600/20 border border-purple-600 rounded-lg px-3 py-2 text-center group-hover:bg-purple-600/30 transition-colors">
-          <span className="text-sm font-semibold">👁️ View Details & Preview</span>
+          <span className="text-sm font-semibold">👁️ View Details & Purchase</span>
         </div>
       </Link>
-
-      {/* Quick Purchase Section */}
-      <div className="border-t border-gray-700 pt-4">
-        <label className="block text-xs text-gray-400 mb-2">Quick Purchase (ETH)</label>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            step="0.001"
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-            className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm focus:outline-none focus:border-purple-500"
-            placeholder="0.001"
-          />
-          <button
-            onClick={() => onUse(asset.tokenId)}
-            disabled={isPending || isConfirming}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-semibold text-sm transition-all"
-          >
-            {isPending || isConfirming ? '⏳' : '💰 Use'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
