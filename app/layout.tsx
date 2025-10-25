@@ -1,25 +1,28 @@
-import './globals.css'
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Providers } from './providers'
-
-const inter = Inter({ subsets: ['latin'] })
+import './globals.css';
+import type { Metadata } from 'next';
+import { Providers } from './providers';
+import Header from '../components/Header';
 
 export const metadata: Metadata = {
   title: 'Artist Blockchain Platform',
-  description: 'Upload and monetize your media assets on the blockchain',
-}
+  description: 'Create, share, and earn from digital assets',
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+      <body>
+        <Providers>
+          <div className="min-h-screen bg-slate-900">
+            <Header />
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
-  )
+  );
 }

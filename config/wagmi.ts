@@ -1,25 +1,20 @@
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { getDefaultWallets } from '@rainbow-me/rainbowkit';
+import { configureChains, createConfig } from 'wagmi';
 import { arbitrumSepolia } from 'wagmi/chains';
-import { Chain } from 'viem';
+import { publicProvider } from 'wagmi/providers/public';
 
-// Custom localhost chain with correct Hardhat chain ID
-const hardhatLocal: Chain = {
-  id: 31337,
-  name: 'Localhost',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
-  },
-  rpcUrls: {
-    default: { http: ['http://127.0.0.1:8545'] },
-    public: { http: ['http://127.0.0.1:8545'] },
-  },
-};
+export const chains = [arbitrumSepolia];
 
-export const config = getDefaultConfig({
+const { publicClient } = configureChains(chains, [publicProvider()]);
+
+const { connectors } = getDefaultWallets({
   appName: 'Artist Blockchain Platform',
-  projectId: '1a6990d651f93baf1fe5dc4c9d729045',
-  chains: [hardhatLocal, arbitrumSepolia],
-  ssr: true,
+  projectId: 'YOUR_WALLETCONNECT_PROJECT_ID', // Replace with actual projectId from cloud.walletconnect.com
+  chains,
+});
+
+export const config = createConfig({
+  autoConnect: true,
+  connectors,
+  publicClient,
 });
