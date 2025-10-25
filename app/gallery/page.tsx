@@ -1,5 +1,11 @@
+'use client';
+
 import dynamic from 'next/dynamic';
-const AssetGallery = dynamic(() => import('../../components/gallery/AssetGallery'), { ssr: false });
+
+const AssetGallery = dynamic(
+  () => import('../../components/gallery/AssetGallery'),
+  { loading: () => <div className="animate-pulse bg-slate-800/50 rounded-2xl h-96" /> }
+);
 
 export default function GalleryPage() {
   return (

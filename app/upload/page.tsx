@@ -1,5 +1,11 @@
+'use client';
+
 import dynamic from 'next/dynamic';
-const UploadForm = dynamic(() => import('../../components/upload/UploadForm'), { ssr: false });
+
+const UploadForm = dynamic(
+  () => import('../../components/upload/UploadForm'),
+  { loading: () => <div className="animate-pulse bg-slate-800/50 rounded-2xl h-96" /> }
+);
 
 export default function UploadPage() {
   return (
