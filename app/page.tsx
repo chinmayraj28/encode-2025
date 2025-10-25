@@ -6,12 +6,6 @@ import AssetGallery from '@/components/AssetGallery';
 import { useState } from 'react';
 
 export default function Home() {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleMintSuccess = () => {
-    setRefreshKey(prev => prev + 1);
-  };
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
       {/* Header */}
