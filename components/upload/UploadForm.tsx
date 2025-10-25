@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { simulateUploadToIPFS, simulateMintAsset } from '../../lib/mockBlockchain';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { Toast } from '../ui/Toast';
@@ -129,4 +128,23 @@ export default function UploadForm() {
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </section>
   );
+}
+
+export async function simulateUploadToIPFS(file: File): Promise<string> {
+  // Simulate upload delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  return `ipfs://${Math.random().toString(36).substring(2)}`;
+}
+
+export async function simulateMintAsset(asset: {
+  fileUrl: string;
+  title: string;
+  description: string;
+  royalty: number;
+  collaborators: string[];
+  creator: string;
+}) {
+  // Simulate minting delay
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  return { ...asset, tokenId: Math.floor(Math.random() * 1000000) };
 }

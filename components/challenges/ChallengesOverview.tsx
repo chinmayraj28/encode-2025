@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import ChallengeCard from './components/challenges/ChallengeCard';
+import ChallengeCard from './ChallengeCard'; // Fixed import path
 
 const tracks = [
 	{
