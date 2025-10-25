@@ -8,17 +8,15 @@ const ChallengesOverview = dynamic(
 );
 
 export default function ChallengesPage() {
-    return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold text-slate-100 mb-2">
         Hackathon Challenges
       </h1>
       <p className="text-slate-400 mb-6">
         Explore challenges and start building
       </p>
-            <ChallengesOverview />
-        </div>
-    )
+      <ChallengesOverview />
+    </div>
+  );
 }
-
-export default ChallengesPage

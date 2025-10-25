@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: sans-serif;
+  background-color: #f9fafb;
+}
+
 :root {
   --bg: #0b1220;
   --surface: #0f1724;

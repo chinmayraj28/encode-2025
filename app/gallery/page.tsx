@@ -1,18 +1,18 @@
-'use client';
+import AssetCard from '../../components/AssetCard';
 
-import dynamic from 'next/dynamic';
-
-const AssetGallery = dynamic(
-  () => import('../../components/gallery/AssetGallery'),
-  { loading: () => <div className="animate-pulse bg-slate-800/50 rounded-2xl h-96" /> }
-);
+const allMedia = [
+  { id: 1, title: 'NFT 1', image: '/placeholder.png' },
+  { id: 2, title: 'NFT 2', image: '/placeholder.png' },
+  { id: 3, title: 'NFT 3', image: '/placeholder.png' },
+];
 
 export default function GalleryPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold text-slate-100 mb-2">Asset Gallery</h1>
-      <p className="text-slate-400 mb-6">Browse and collect creative assets</p>
-      <AssetGallery />
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Gallery</h1>
+      <div className="grid grid-cols-3 gap-4">
+        {allMedia.map(asset => <AssetCard key={asset.id} {...asset} />)}
+      </div>
     </div>
   );
 }

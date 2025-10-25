@@ -1,27 +1,11 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-
-const AssetGallery = dynamic(() => import('../components/gallery/AssetGallery'), {
-  ssr: false,
-  loading: () => <div className="animate-pulse bg-slate-800/50 rounded-2xl h-96" />,
-});
-
-const ChallengesOverview = dynamic(() => import('../components/challenges/ChallengesOverview'), {
-  ssr: false,
-  loading: () => <div className="animate-pulse bg-slate-800/50 rounded-2xl h-64" />,
-});
+import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="text-3xl font-bold text-slate-100 mb-6">
-        Artist Blockchain Platform
-      </h1>
-      <div className="space-y-8">
-        <AssetGallery />
-        <ChallengesOverview />
-      </div>
-    </main>
+    <div className="p-8 text-center">
+      <h1 className="text-4xl font-bold mb-4">Welcome to Encode</h1>
+      <p className="mb-8">Your platform for uploading and exploring digital assets.</p>
+      <Link href="/assets" className="bg-blue-600 text-white px-6 py-3 rounded">Go to Assets</Link>
+    </div>
   );
 }
