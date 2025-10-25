@@ -257,6 +257,7 @@ export default function AssetPage() {
       case 'visual': return '🎨';
       case 'vfx': return '✨';
       case 'sfx': return '🔊';
+      case '3d': return '🧊';
       default: return '📄';
     }
   };
@@ -565,6 +566,35 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
               ipfsHash={ipfsHash}
               className="w-full"
             />
+          </div>
+        );
+
+      case '3d':
+        return (
+          <div className="bg-gray-900 rounded-lg overflow-hidden">
+            <div className="bg-purple-900/40 border-b border-purple-700 p-3">
+              <p className="text-purple-400 text-sm font-semibold text-center">
+                ⚠️ 3D MODEL PREVIEW GRID (4 Views)
+              </p>
+              <p className="text-xs text-gray-400 text-center">
+                Low-quality preview grid • Purchase for full 3D model file
+              </p>
+            </div>
+            <div className="p-4">
+              <IPFSImage
+                ipfsHash={ipfsHash}
+                alt="3D Model Preview Grid"
+                className="w-full h-auto rounded"
+                fallback={
+                  <div className="w-full h-96 flex items-center justify-center bg-gray-800 rounded">
+                    <div className="text-center">
+                      <span className="text-6xl block mb-4">🧊</span>
+                      <span className="text-gray-500">3D Model Preview</span>
+                    </div>
+                  </div>
+                }
+              />
+            </div>
           </div>
         );
 

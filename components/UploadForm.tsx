@@ -330,6 +330,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
               <option value="visual">🎨 Visual</option>
               <option value="vfx">✨ VFX</option>
               <option value="sfx">🔊 SFX</option>
+              <option value="3d">🧊 3D Model</option>
             </select>
           </div>
 
@@ -340,10 +341,15 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
               type="file"
               onChange={handleFileChange}
               className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-              accept="audio/*,video/*,image/*"
+              accept={mediaType === '3d' ? '.glb,.gltf,.fbx,.obj,.stl,.blend' : 'audio/*,video/*,image/*'}
               required
             />
             {file && <p className="text-sm text-gray-400 mt-2">Selected: {file.name}</p>}
+            {mediaType === '3d' && (
+              <p className="text-xs text-gray-500 mt-2">
+                Supported formats: GLB, GLTF, FBX, OBJ, STL, Blender
+              </p>
+            )}
           </div>
 
           {/* Price */}

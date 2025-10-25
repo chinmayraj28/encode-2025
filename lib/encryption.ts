@@ -75,8 +75,8 @@ export const decryptFile = async (
         // Convert WordArray back to Uint8Array
         const decryptedUint8Array = wordArrayToUint8Array(decrypted);
 
-        // Create blob with original mime type
-        const decryptedBlob = new Blob([decryptedUint8Array], { type: originalMimeType });
+        // Create blob with original mime type - cast to BlobPart to fix TypeScript error
+        const decryptedBlob = new Blob([decryptedUint8Array as BlobPart], { type: originalMimeType });
 
         console.log('✅ File decrypted successfully');
         resolve(decryptedBlob);

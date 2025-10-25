@@ -60,6 +60,8 @@ interface MediaAsset {
 export default function AssetGallery() {
   const { address, isConnected, chain } = useAccount();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Get total number of assets
   const { data: totalAssets, refetch: refetchTotal } = useReadContract({
@@ -73,11 +75,17 @@ export default function AssetGallery() {
     const fetchAssets = async () => {
       if (!totalAssets || !CONTRACT_ADDRESS) return;
 
+      setIsLoading(true);
+      setLoadingProgress(0);
+      
       const fetchedAssets: MediaAsset[] = [];
       const total = Number(totalAssets);
 
       for (let i = 0; i < total; i++) {
         try {
+          // Update progress
+          setLoadingProgress(Math.round((i / total) * 100));
+          
           // Fetch asset data from API
           const response = await fetch(`/api/asset/${i}`);
           if (response.ok) {
@@ -133,6 +141,8 @@ export default function AssetGallery() {
       }
 
       setAssets(fetchedAssets);
+      setLoadingProgress(100);
+      setIsLoading(false);
     };
 
     fetchAssets();
@@ -150,6 +160,68 @@ export default function AssetGallery() {
     return (
       <div className="text-center py-12 text-yellow-400">
         <p>⚠️ Contract not deployed. Please set NEXT_PUBLIC_CONTRACT_ADDRESS in .env.local</p>
+      </div>
+    );
+  }
+
+  // Loading screen with progress
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-8">
+        {/* Animated icon */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-purple-600 rounded-full opacity-20 animate-ping"></div>
+          <div className="relative bg-gradient-to-br from-purple-600 to-blue-600 p-8 rounded-full">
+            <svg 
+              className="w-16 h-16 text-white animate-spin" 
+              fill="none" 
+              viewBox="0 0 24 24"
+            >
+              <circle 
+                className="opacity-25" 
+                cx="12" 
+                cy="12" 
+                r="10" 
+                stroke="currentColor" 
+                strokeWidth="4"
+              ></circle>
+              <path 
+                className="opacity-75" 
+                fill="currentColor" 
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </div>
+        </div>
+
+        {/* Loading text */}
+        <div className="text-center space-y-2">
+          <h3 className="text-2xl font-bold text-white">Loading Assets...</h3>
+          <p className="text-gray-400">Fetching from blockchain and IPFS</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full max-w-md space-y-2">
+          <div className="h-3 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
+            <div 
+              className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 ease-out relative"
+              style={{ width: `${loadingProgress}%` }}
+            >
+              <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+            </div>
+          </div>
+          <p className="text-center text-sm text-gray-400">
+            {loadingProgress}% complete
+          </p>
+        </div>
+
+        {/* Fun loading messages */}
+        <div className="text-center text-sm text-purple-400 animate-pulse">
+          {loadingProgress < 30 && "🔗 Connecting to blockchain..."}
+          {loadingProgress >= 30 && loadingProgress < 60 && "📦 Fetching asset metadata..."}
+          {loadingProgress >= 60 && loadingProgress < 90 && "🖼️ Loading previews from IPFS..."}
+          {loadingProgress >= 90 && "✨ Almost there..."}
+        </div>
       </div>
     );
   }
@@ -185,6 +257,7 @@ function AssetCard({
       case 'visual': return '🎨';
       case 'vfx': return '✨';
       case 'sfx': return '🔊';
+      case '3d': return '🧊';
       default: return '📄';
     }
   };
@@ -207,7 +280,7 @@ function AssetCard({
       <Link href={`/asset/${asset.tokenId}`} className="block">
         {/* Preview Section */}
         <div className="relative w-full h-48 bg-gray-900/50 flex items-center justify-center overflow-hidden">
-          {asset.mediaType.toLowerCase() === 'visual' || asset.mediaType.toLowerCase() === 'vfx' ? (
+          {asset.mediaType.toLowerCase() === 'visual' || asset.mediaType.toLowerCase() === 'vfx' || asset.mediaType.toLowerCase() === '3d' ? (
             <IPFSImage
               ipfsHash={asset.previewHash}
               alt={asset.title || 'Asset preview'}
