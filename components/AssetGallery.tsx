@@ -225,7 +225,7 @@ function AssetCard({
                 ipfsHash={asset.previewHash}
                 className="w-full max-w-xs"
                 onClick={(e) => e.stopPropagation()}
-                preload="none"
+                preload="metadata"
               />
             </div>
           ) : (

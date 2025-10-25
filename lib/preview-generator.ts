@@ -200,68 +200,89 @@ export async function generateVideoPreview(file: File): Promise<File> {
 }
 
 /**
- * Convert AudioBuffer to WAV blob
+ * Convert AudioBuffer to WAV blob with proper PCM encoding
  */
-function audioBufferToWav(buffer: AudioBuffer, forceMono: boolean = false): Blob {
-  const numChannels = forceMono ? 1 : buffer.numberOfChannels;
-  const sampleRate = buffer.sampleRate;
-  const length = buffer.length * numChannels * 2;
-  const arrayBuffer = new ArrayBuffer(44 + length);
-  const view = new DataView(arrayBuffer);
-
-  // WAV header
+function audioBufferToWav(audioBuffer: AudioBuffer, forceMono: boolean = false): Blob {
+  const numChannels = forceMono ? 1 : audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+  
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  
+  const data = [];
+  
+  // Get channel data
+  const channels = [];
+  for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+    channels.push(audioBuffer.getChannelData(i));
+  }
+  
+  // Interleave channels
+  if (forceMono && audioBuffer.numberOfChannels > 1) {
+    // Mix down to mono by averaging channels
+    for (let i = 0; i < audioBuffer.length; i++) {
+      let sample = 0;
+      for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+        sample += channels[channel][i];
+      }
+      sample /= audioBuffer.numberOfChannels;
+      
+      // Clamp to [-1, 1] and convert to 16-bit PCM
+      sample = Math.max(-1, Math.min(1, sample));
+      const s = Math.round(sample < 0 ? sample * 0x8000 : sample * 0x7FFF);
+      data.push(s & 0xff);
+      data.push((s >> 8) & 0xff);
+    }
+  } else {
+    // Keep original channel configuration
+    for (let i = 0; i < audioBuffer.length; i++) {
+      for (let channel = 0; channel < numChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+        const s = Math.round(sample < 0 ? sample * 0x8000 : sample * 0x7FFF);
+        data.push(s & 0xff);
+        data.push((s >> 8) & 0xff);
+      }
+    }
+  }
+  
+  const dataLength = data.length;
+  const wavBuffer = new ArrayBuffer(44 + dataLength);
+  const view = new DataView(wavBuffer);
+  
+  // Helper function to write strings
   const writeString = (offset: number, string: string) => {
     for (let i = 0; i < string.length; i++) {
       view.setUint8(offset + i, string.charCodeAt(i));
     }
   };
-
-  writeString(0, 'RIFF');
-  view.setUint32(4, 36 + length, true);
-  writeString(8, 'WAVE');
-  writeString(12, 'fmt ');
-  view.setUint32(16, 16, true); // Subchunk1Size
-  view.setUint16(20, 1, true); // AudioFormat (PCM)
-  view.setUint16(22, numChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * numChannels * 2, true); // ByteRate
-  view.setUint16(32, numChannels * 2, true); // BlockAlign
-  view.setUint16(34, 16, true); // BitsPerSample
-  writeString(36, 'data');
-  view.setUint32(40, length, true);
-
-  // Write audio data
-  const channels = [];
-  for (let i = 0; i < buffer.numberOfChannels; i++) {
-    channels.push(buffer.getChannelData(i));
-  }
-
-  let offset = 44;
   
-  if (forceMono && buffer.numberOfChannels > 1) {
-    // Mix down to mono by averaging channels
-    for (let i = 0; i < buffer.length; i++) {
-      let sample = 0;
-      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-        sample += channels[channel][i];
-      }
-      sample /= buffer.numberOfChannels;
-      sample = Math.max(-1, Math.min(1, sample));
-      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-      offset += 2;
-    }
-  } else {
-    // Normal stereo/mono encoding
-    for (let i = 0; i < buffer.length; i++) {
-      for (let channel = 0; channel < numChannels; channel++) {
-        const sample = Math.max(-1, Math.min(1, channels[channel][i]));
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-        offset += 2;
-      }
-    }
+  // RIFF chunk descriptor
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataLength, true); // file length - 8
+  writeString(8, 'WAVE');
+  
+  // fmt sub-chunk
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
+  view.setUint16(20, format, true); // AudioFormat (1 = PCM)
+  view.setUint16(22, numChannels, true); // NumChannels
+  view.setUint32(24, sampleRate, true); // SampleRate
+  view.setUint32(28, sampleRate * blockAlign, true); // ByteRate
+  view.setUint16(32, blockAlign, true); // BlockAlign
+  view.setUint16(34, bitDepth, true); // BitsPerSample
+  
+  // data sub-chunk
+  writeString(36, 'data');
+  view.setUint32(40, dataLength, true); // Subchunk2Size
+  
+  // Write audio data
+  for (let i = 0; i < data.length; i++) {
+    view.setUint8(44 + i, data[i]);
   }
-
-  return new Blob([arrayBuffer], { type: 'audio/wav' });
+  
+  return new Blob([wavBuffer], { type: 'audio/wav' });
 }
 
 /**
