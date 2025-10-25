@@ -8,11 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "compile": "hardhat compile",
-    "deploy:testnet": "hardhat run scripts/deploy.js --network arbitrumSepolia",
+    "deploy:sepolia": "hardhat run scripts/deploy.js --network sepolia",
+    "deploy:arbitrum": "hardhat run scripts/deploy.js --network arbitrumSepolia",
     "deploy:local": "hardhat run scripts/deploy.js --network localhost"
   },
   "dependencies": {
-    "@rainbow-me/rainbowkit": "^2.1.0",
+    "@openfort/react": "^0.0.34",
     "@tanstack/react-query": "^5.51.0",
     "crypto-js": "^4.2.0",
     "ethers": "^5.8.0",

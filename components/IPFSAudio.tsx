@@ -19,12 +19,13 @@ export function IPFSAudio({ ipfsHash, className, controls = true, preload = 'non
   const audioRef = useRef<HTMLAudioElement>(null);
   
   const gateways = [
+    `/api/ipfs/${ipfsHash}`, // Use Next.js proxy (no CORS issues!)
+    `https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${ipfsHash}`,
     `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
-    `https://ipfs.io/ipfs/${ipfsHash}`,
-    `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`,
   ];
 
   useEffect(() => {
+    console.log('🎵 IPFSAudio loading:', ipfsHash);
     setCurrentUrl(gateways[0]);
     setError(false);
   }, [ipfsHash]);

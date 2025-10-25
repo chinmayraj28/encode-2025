@@ -1,6 +1,6 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+import ConnectWallet from '@/components/ConnectWallet';
 import UploadForm from '@/components/UploadForm';
 import AssetGallery from '@/components/AssetGallery';
 import { useState } from 'react';
@@ -24,7 +24,7 @@ export default function Home() {
               </h1>
               <p className="text-gray-400 text-sm mt-1">Upload, Own, Monetize Your Creative Assets</p>
             </div>
-            <ConnectButton />
+            <ConnectWallet />
           </div>
         </div>
       </header>

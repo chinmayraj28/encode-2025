@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
 import { uploadFileToPinata, uploadJSONToPinata, getPinataUrl } from '@/lib/pinata';
 import { generateEncryptionKey, encryptFile } from '@/lib/encryption';
 import { generatePreview } from '@/lib/preview-generator';
-import { parseEther } from 'viem';
+import { parseEther, encodeFunctionData } from 'viem';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -42,7 +42,7 @@ interface Collaborator {
 }
 
 export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => void }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const [file, setFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<string>('audio');
   const [title, setTitle] = useState<string>('');
@@ -52,7 +52,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
 
-  const { data: hash, writeContract, isPending, error: writeError } = useWriteContract();
+  const { data: hash, sendTransaction, isPending, error: writeError } = useSendTransaction();
   
   const { isLoading: isConfirming, isSuccess, error: confirmError } = useWaitForTransactionReceipt({
     hash,
@@ -211,8 +211,8 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
         collaborators: contractCollaborators,
       });
 
-      writeContract({
-        address: CONTRACT_ADDRESS,
+      // Encode the contract call data
+      const data = encodeFunctionData({
         abi: CONTRACT_ABI,
         functionName: 'mintMediaAsset',
         args: [
@@ -224,6 +224,12 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
           encryptionKey,                        // encryptionKey: Store encryption key in contract
           contractCollaborators,                // collaborators
         ],
+      });
+
+      // Send transaction using useSendTransaction for Openfort compatibility
+      sendTransaction({
+        to: CONTRACT_ADDRESS,
+        data,
       });
 
       setUploadStatus('⏳ Waiting for transaction confirmation...');

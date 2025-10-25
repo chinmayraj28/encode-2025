@@ -1,9 +1,8 @@
 'use client';
 
-import '@rainbow-me/rainbowkit/styles.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
-import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { OpenfortProvider, AuthProvider, AccountTypeEnum } from '@openfort/react';
 import { config } from '../config/wagmi';
 
 const queryClient = new QueryClient();
@@ -12,9 +11,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <OpenfortProvider
+          publishableKey={process.env.NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY!}
+          uiConfig={{
+            authProviders: [AuthProvider.GOOGLE, AuthProvider.WALLET],
+          }}
+          walletConfig={{
+            accountType: AccountTypeEnum.EOA,  // Use EOA for custom chains
+            shieldPublishableKey: process.env.NEXT_PUBLIC_SHIELD_PUBLISHABLE_KEY!,
+          }}
+        >
           {children}
-        </RainbowKitProvider>
+        </OpenfortProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

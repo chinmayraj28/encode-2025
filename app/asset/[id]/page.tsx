@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
-import { parseEther, formatEther } from 'viem';
+import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
+import { parseEther, formatEther, encodeFunctionData } from 'viem';
 import Link from 'next/link';
 import { decryptFile, downloadDecryptedFile } from '@/lib/encryption';
 import { IPFSImage } from '@/components/IPFSImage';
@@ -53,7 +53,7 @@ interface MediaAsset {
 export default function AssetPage() {
   const params = useParams();
   const router = useRouter();
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const [asset, setAsset] = useState<MediaAsset | null>(null);
   const [loading, setLoading] = useState(true);
   const [metadata, setMetadata] = useState<any>(null);
@@ -61,7 +61,7 @@ export default function AssetPage() {
   const [isDecrypting, setIsDecrypting] = useState(false);
   const [decryptionStatus, setDecryptionStatus] = useState<string>('');
 
-  const { data: hash, writeContract, isPending } = useWriteContract();
+  const { data: hash, sendTransaction, isPending } = useSendTransaction();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });
 
   const tokenId = params.id as string;
@@ -112,14 +112,15 @@ export default function AssetPage() {
             try {
               // Extract CID from ipfs:// URI
               const metadataCID = data.tokenURI.replace('ipfs://', '');
-              const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${metadataCID}`);
+              // Use proxy API to avoid CORS
+              const metadataResponse = await fetch(`/api/ipfs/${metadataCID}`);
               if (metadataResponse.ok) {
                 const metadataJson = await metadataResponse.json();
-                console.log('Fetched metadata:', metadataJson);
+                console.log('✅ Fetched metadata:', metadataJson);
                 setMetadata(metadataJson);
               }
             } catch (err) {
-              console.error('Error fetching metadata:', err);
+              console.error('❌ Error fetching metadata:', err);
             }
           }
         }
@@ -136,11 +137,17 @@ export default function AssetPage() {
   const handleUseAsset = () => {
     if (!CONTRACT_ADDRESS || !asset || !asset.price) return;
 
-    writeContract({
-      address: CONTRACT_ADDRESS,
+    // Encode the contract call
+    const data = encodeFunctionData({
       abi: CONTRACT_ABI,
       functionName: 'useAsset',
       args: [BigInt(asset.tokenId)],
+    });
+
+    // Send transaction with payment
+    sendTransaction({
+      to: CONTRACT_ADDRESS,
+      data,
       value: asset.price, // Use the price set by the creator
     });
   };
@@ -155,11 +162,11 @@ export default function AssetPage() {
       setIsDecrypting(true);
       setDecryptionStatus('📥 Downloading encrypted file from IPFS...');
 
-      // Try multiple IPFS gateways for better reliability
+      // Use proxy API first to avoid CORS issues, then fallback to direct gateways
       const gateways = [
+        `/api/ipfs/${asset.ipfsHash}`, // Next.js proxy (no CORS!)
+        `https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${asset.ipfsHash}`,
         `https://gateway.pinata.cloud/ipfs/${asset.ipfsHash}`,
-        `https://ipfs.io/ipfs/${asset.ipfsHash}`,
-        `https://cloudflare-ipfs.com/ipfs/${asset.ipfsHash}`,
       ];
 
       let encryptedBlob: Blob | null = null;
@@ -512,19 +519,16 @@ function MediaPreview({ ipfsHash, mediaType, metadata }: { ipfsHash: string; med
   useEffect(() => {
     // Priority 1: Use the previewHash directly (this is the unencrypted preview file)
     if (ipfsHash) {
-      setPreviewUrl(`https://gateway.pinata.cloud/ipfs/${ipfsHash}`);
+      // Use proxy API to avoid CORS
+      setPreviewUrl(`/api/ipfs/${ipfsHash}`);
     }
     // Priority 2: Try metadata image/animation_url as fallback
     else if (metadata?.image) {
-      const imageUrl = metadata.image.startsWith('ipfs://')
-        ? `https://gateway.pinata.cloud/ipfs/${metadata.image.replace('ipfs://', '')}`
-        : metadata.image;
-      setPreviewUrl(imageUrl);
+      const imageCID = metadata.image.replace('ipfs://', '');
+      setPreviewUrl(`/api/ipfs/${imageCID}`);
     } else if (metadata?.animation_url) {
-      const animUrl = metadata.animation_url.startsWith('ipfs://')
-        ? `https://gateway.pinata.cloud/ipfs/${metadata.animation_url.replace('ipfs://', '')}`
-        : metadata.animation_url;
-      setPreviewUrl(animUrl);
+      const animCID = metadata.animation_url.replace('ipfs://', '');
+      setPreviewUrl(`/api/ipfs/${animCID}`);
     }
   }, [ipfsHash, metadata]);
 

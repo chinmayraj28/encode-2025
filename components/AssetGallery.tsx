@@ -58,7 +58,7 @@ interface MediaAsset {
 }
 
 export default function AssetGallery() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   const [assets, setAssets] = useState<MediaAsset[]>([]);
 
   // Get total number of assets
@@ -82,6 +82,7 @@ export default function AssetGallery() {
           const response = await fetch(`/api/asset/${i}`);
           if (response.ok) {
             const asset = await response.json();
+            console.log(`📦 Asset ${i} data:`, asset);
             
             // Fetch metadata from IPFS to get title and description
             let title = undefined;
@@ -92,28 +93,30 @@ export default function AssetGallery() {
                 // Extract CID from ipfs:// URI
                 const metadataCID = asset.tokenURI.replace('ipfs://', '');
                 
-                // Try multiple IPFS gateways
-                const gateways = [
+                // Try multiple methods: proxy first, then direct gateways
+                const urls = [
+                  `/api/ipfs/${metadataCID}`, // Use Next.js proxy (no CORS!)
+                  `https://${process.env.NEXT_PUBLIC_PINATA_GATEWAY}/ipfs/${metadataCID}`,
                   `https://gateway.pinata.cloud/ipfs/${metadataCID}`,
-                  `https://ipfs.io/ipfs/${metadataCID}`,
-                  `https://cloudflare-ipfs.com/ipfs/${metadataCID}`,
                 ];
 
-                for (const url of gateways) {
+                for (const url of urls) {
                   try {
                     const metadataResponse = await fetch(url);
                     if (metadataResponse.ok) {
                       const metadata = await metadataResponse.json();
                       title = metadata.name;
                       description = metadata.description;
+                      console.log(`✅ Metadata loaded for asset ${i}:`, { title, description });
                       break; // Success, exit loop
                     }
                   } catch (err) {
-                    continue; // Try next gateway
+                    console.warn(`⚠️ Failed to load metadata from ${url}:`, err);
+                    continue; // Try next URL
                   }
                 }
               } catch (metadataError) {
-                console.error(`Error fetching metadata for asset ${i}:`, metadataError);
+                console.error(`❌ Error fetching metadata for asset ${i}:`, metadataError);
               }
             }
             
@@ -133,7 +136,7 @@ export default function AssetGallery() {
     };
 
     fetchAssets();
-  }, [totalAssets]);
+  }, [totalAssets, CONTRACT_ADDRESS]);
 
   if (!isConnected) {
     return (

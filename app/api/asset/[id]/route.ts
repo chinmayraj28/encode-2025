@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http } from 'viem';
-import { arbitrumSepolia } from 'viem/chains';
+import { sepolia } from 'viem/chains';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
-
-// Custom localhost chain for Hardhat
-const localhost = {
-  id: 31337,
-  name: 'Localhost',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
-  },
-  rpcUrls: {
-    default: { http: ['http://127.0.0.1:8545'] },
-    public: { http: ['http://127.0.0.1:8545'] },
-  },
-};
 
 const CONTRACT_ABI = [
   {
@@ -62,7 +47,7 @@ export async function GET(
     }
 
     const client = createPublicClient({
-      chain: localhost, // Use localhost for local development
+      chain: sepolia,
       transport: http(),
     });
 
