@@ -57,16 +57,16 @@ export default function Navbar() {
             </nav>
           </div>
 
-          {/* Right Side: Logo and Connect Wallet Button */}
+          {/* Right Side: Connect Wallet Button and Logo */}
           <div className="flex items-center gap-4">
+            <ConnectWallet />
             <Image 
               src="/assets/Logo.png" 
               alt="Media Mercatum Logo" 
-              width={50} 
-              height={50}
+              width={55} 
+              height={55}
               className="rounded-lg"
             />
-            <ConnectWallet />
           </div>
         </div>
 
