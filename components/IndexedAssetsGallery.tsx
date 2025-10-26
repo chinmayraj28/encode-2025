@@ -41,14 +41,33 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
   const creator = showMyAssets ? address : undefined;
   const { assets, loading, error, refetch, lastFetch } = useIndexedAssets(creator); // Fetch all assets, pagination handled client-side
 
-  // Auto-refresh every 30 seconds to catch newly indexed assets
+  // Auto-refresh every 10 seconds to catch newly indexed assets
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('🔄 Auto-refreshing assets...');
       refetch();
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
+  }, [refetch]);
+
+  // Refresh when page becomes visible (user returns to tab after uploading)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Page visible - refreshing assets...');
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh when component first mounts
+    console.log('🎬 Gallery mounted - initial fetch');
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [refetch]);
 
   // Log filter state and asset fetching

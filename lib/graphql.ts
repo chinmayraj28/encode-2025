@@ -95,20 +95,34 @@ export async function queryGraphQL<T = any>(
  * Query all minted media assets with full metadata
  */
 export async function getMediaAssetsMinted(limit?: number) {
-  const query = `
-    query GetMintedAssets($limit: Int) {
-      MediaAssetNFT_MediaAssetMinted(
-        ${limit ? 'limit: $limit' : ''}
-        order_by: { id: desc }
-      ) {
-        id
-        tokenId
-        creator
-        ipfsHash
-        mediaType
+  const query = limit 
+    ? `
+      query GetMintedAssets($limit: Int!) {
+        MediaAssetNFT_MediaAssetMinted(
+          limit: $limit
+          order_by: { id: desc }
+        ) {
+          id
+          tokenId
+          creator
+          ipfsHash
+          mediaType
+        }
       }
-    }
-  `;
+    `
+    : `
+      query GetMintedAssets {
+        MediaAssetNFT_MediaAssetMinted(
+          order_by: { id: desc }
+        ) {
+          id
+          tokenId
+          creator
+          ipfsHash
+          mediaType
+        }
+      }
+    `;
 
   const result = await queryGraphQL<{
     MediaAssetNFT_MediaAssetMinted: Array<{
@@ -195,21 +209,36 @@ export async function getMediaAssetsMinted(limit?: number) {
  * Query assets by creator address with full metadata
  */
 export async function getAssetsByCreator(creator: string, limit?: number) {
-  const query = `
-    query GetAssetsByCreator($creator: String!, $limit: Int) {
-      MediaAssetNFT_MediaAssetMinted(
-        where: { creator: { _eq: $creator } }
-        order_by: { id: desc }
-        ${limit ? 'limit: $limit' : ''}
-      ) {
-        id
-        tokenId
-        creator
-        ipfsHash
-        mediaType
+  const query = limit
+    ? `
+      query GetAssetsByCreator($creator: String!, $limit: Int!) {
+        MediaAssetNFT_MediaAssetMinted(
+          where: { creator: { _eq: $creator } }
+          order_by: { id: desc }
+          limit: $limit
+        ) {
+          id
+          tokenId
+          creator
+          ipfsHash
+          mediaType
+        }
       }
-    }
-  `;
+    `
+    : `
+      query GetAssetsByCreator($creator: String!) {
+        MediaAssetNFT_MediaAssetMinted(
+          where: { creator: { _eq: $creator } }
+          order_by: { id: desc }
+        ) {
+          id
+          tokenId
+          creator
+          ipfsHash
+          mediaType
+        }
+      }
+    `;
 
   const result = await queryGraphQL<{
     MediaAssetNFT_MediaAssetMinted: Array<{
