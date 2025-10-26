@@ -1,15 +1,19 @@
+'use client';
+
 import Link from 'next/link';
 
 export default function Navbar() {
   return (
-    <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
-      <div className="text-xl font-bold">Encode</div>
-      <nav className="flex gap-6">
-        <Link href="/assets" className="hover:text-gray-300">Assets</Link>
-        <Link href="/upload" className="hover:text-gray-300">Upload</Link>
-        <Link href="/gallery" className="hover:text-gray-300">Gallery</Link>
-        <Link href="/explore" className="hover:text-gray-300">Explore</Link>
-      </nav>
-    </header>
+    <nav className="navbar">
+      <div className="flex items-center">
+        <h1 className="text-2xl font-bold text-[color:var(--accent)]">Encode</h1>
+      </div>
+      <div className="flex items-center">
+        <Link href="/assets">Assets</Link>
+        <Link href="/upload">Upload</Link>
+        <Link href="/gallery">Gallery</Link>
+        <Link href="/explore">Explore</Link>
+      </div>
+    </nav>
   );
 }

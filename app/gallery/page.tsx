@@ -1,17 +1,19 @@
-import AssetCard from '../../components/AssetCard';
+'use client';
 
-const allMedia = [
-  { id: 1, title: 'NFT 1', image: '/placeholder.png' },
-  { id: 2, title: 'NFT 2', image: '/placeholder.png' },
-  { id: 3, title: 'NFT 3', image: '/placeholder.png' },
-];
+import Navbar from '@/components/Navbar';
 
 export default function GalleryPage() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Gallery</h1>
-      <div className="grid grid-cols-3 gap-4">
-        {allMedia.map(asset => <AssetCard key={asset.id} {...asset} />)}
+    <div className="min-h-screen pt-20 px-8">
+      <Navbar />
+      <h2 className="text-3xl font-bold mb-6">Gallery</h2>
+
+      <div className="grid-3">
+        {/* Example gallery item */}
+        <div className="card">
+          <div className="w-full h-48 bg-gray-700 rounded-lg mb-2"></div>
+          <p className="font-medium">Gallery Item 1</p>
+        </div>
       </div>
     </div>
   );
