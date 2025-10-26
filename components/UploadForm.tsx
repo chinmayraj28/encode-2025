@@ -5,6 +5,7 @@ import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wa
 import { uploadFileToPinata, uploadJSONToPinata, getPinataUrl } from '@/lib/pinata';
 import { generateEncryptionKey, encryptFile } from '@/lib/encryption';
 import { generatePreview } from '@/lib/preview-generator';
+import { validateFile, getAcceptedFileTypes, getSupportedFormatsDescription } from '@/lib/file-validation';
 import { parseEther, encodeFunctionData } from 'viem';
 import toast from 'react-hot-toast';
 
@@ -52,6 +53,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [fileValidationError, setFileValidationError] = useState<string>('');
 
   const { data: hash, sendTransaction, isPending, error: writeError } = useSendTransaction();
   
@@ -95,7 +97,28 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      
+      // Validate file type matches media type
+      const validation = validateFile(selectedFile, mediaType, 500); // 500MB max
+      
+      if (!validation.isValid) {
+        setFileValidationError(validation.error || 'Invalid file');
+        setFile(null);
+        toast.error(validation.error || 'Invalid file type', {
+          duration: 5000,
+        });
+        // Reset the input
+        e.target.value = '';
+        return;
+      }
+      
+      // File is valid
+      setFileValidationError('');
+      setFile(selectedFile);
+      toast.success(`✓ ${selectedFile.name} validated successfully`, {
+        duration: 3000,
+      });
     }
   };
 
@@ -111,6 +134,29 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
     const updated = [...collaborators];
     updated[index] = { ...updated[index], [field]: value };
     setCollaborators(updated);
+  };
+
+  // Re-validate file when media type changes
+  const handleMediaTypeChange = (newMediaType: string) => {
+    setMediaType(newMediaType);
+    
+    // If a file is already selected, revalidate it
+    if (file) {
+      const validation = validateFile(file, newMediaType, 500);
+      
+      if (!validation.isValid) {
+        setFileValidationError(validation.error || 'Invalid file for this media type');
+        setFile(null);
+        toast.error(`File removed: ${validation.error}`, {
+          duration: 5000,
+        });
+      } else {
+        setFileValidationError('');
+        toast.success(`✓ File is compatible with ${newMediaType}`, {
+          duration: 3000,
+        });
+      }
+    }
   };
 
   const uploadToIPFS = async (file: File, metadata: any): Promise<{ metadataCID: string; fileCID: string; previewCID: string; encryptionKey: string }> => {
@@ -369,7 +415,7 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
               </label>
               <select
                 value={mediaType}
-                onChange={(e) => setMediaType(e.target.value)}
+                onChange={(e) => handleMediaTypeChange(e.target.value)}
                 className="w-full px-5 py-3 bg-gray-900/50 border border-gray-700/30 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all text-white appearance-none cursor-pointer"
               >
                 <option value="audio">🎵 Audio</option>
@@ -411,22 +457,28 @@ export default function UploadForm({ onMintSuccess }: { onMintSuccess?: () => vo
                 type="file"
                 onChange={handleFileChange}
                 className="w-full px-5 py-3 bg-gray-900/50 border border-gray-700/30 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all text-white file:mr-4 file:py-2 file:px-6 file:rounded-lg file:border-0 file:bg-white file:text-gray-900 file:font-semibold hover:file:bg-gray-100 file:cursor-pointer file:transition-all file:shadow-md hover:file:shadow-lg"
-                accept={mediaType === '3d' ? '.glb,.gltf,.fbx,.obj,.stl,.blend' : 'audio/*,video/*,image/*'}
+                accept={getAcceptedFileTypes(mediaType)}
                 required
               />
             </div>
-            {file && (
+            {file && !fileValidationError && (
               <div className="mt-3 p-3 bg-green-900/20 border border-green-500/30 rounded-lg">
                 <p className="text-sm text-green-300 flex items-center gap-2">
                   <span>✓</span> Selected: <span className="font-semibold">{file.name}</span>
+                  <span className="text-green-400/70">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                 </p>
               </div>
             )}
-            {mediaType === '3d' && (
-              <p className="text-xs text-gray-500 mt-2">
-                📦 Supported: GLB, GLTF, FBX, OBJ, STL, Blender
-              </p>
+            {fileValidationError && (
+              <div className="mt-3 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-sm text-red-300 flex items-center gap-2">
+                  <span>❌</span> {fileValidationError}
+                </p>
+              </div>
             )}
+            <p className="text-xs text-gray-500 mt-2">
+              {getSupportedFormatsDescription(mediaType)} • Max 500MB
+            </p>
           </div>
 
           {/* Collaborators */}

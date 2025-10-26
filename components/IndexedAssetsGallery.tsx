@@ -33,12 +33,13 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
   const { address } = useAccount();
   const [showMyAssets, setShowMyAssets] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
-  const [limit, setLimit] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
   const [purchasedTokenIds, setPurchasedTokenIds] = useState<Set<string>>(new Set());
   const [checkingPurchases, setCheckingPurchases] = useState(false);
+  const assetsPerPage = 12; // Fixed number of assets per page
 
   const creator = showMyAssets ? address : undefined;
-  const { assets, loading, error } = useIndexedAssets(creator, limit);
+  const { assets, loading, error } = useIndexedAssets(creator, 1000); // Load more assets for pagination
 
   // Check which assets the user has purchased
   useEffect(() => {
@@ -94,6 +95,17 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
     return filtered;
   }, [assets, mediaFilter, showPurchases, address, purchasedTokenIds]);
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAssets.length / assetsPerPage);
+  const startIndex = (currentPage - 1) * assetsPerPage;
+  const endIndex = startIndex + assetsPerPage;
+  const paginatedAssets = filteredAssets.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [mediaFilter, showMyAssets, showPurchases]);
+
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType.toLowerCase()) {
       case 'audio': return '🎵';
@@ -107,6 +119,32 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  const formatDate = (timestamp: string | undefined) => {
+    if (!timestamp) return null;
+    
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffInMs = now.getTime() - date.getTime();
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+
+      // Relative time for uploads less than 24 hours old
+      if (diffInMinutes < 1) return 'Just now';
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+      if (diffInHours < 24) return `${diffInHours}h ago`;
+      
+      // Absolute date for anything 24 hours or older
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    } catch (error) {
+      return null;
+    }
   };
 
   if (error) {
@@ -156,16 +194,6 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
               </button>
             </>
           )}
-          <select
-            value={limit}
-            onChange={(e) => setLimit(Number(e.target.value))}
-            className="px-4 py-2 rounded-lg border border-gray-700/30 bg-gray-800/50 text-white focus:border-teal-500 focus:outline-none"
-          >
-            <option value={10}>10 assets</option>
-            <option value={20}>20 assets</option>
-            <option value={50}>50 assets</option>
-            <option value={100}>100 assets</option>
-          </select>
         </div>
       </div>
 
@@ -189,7 +217,7 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAssets.map((asset) => {
+            {paginatedAssets.map((asset) => {
               const metadata = asset.metadata;
               const mediaType = asset.mediaType || metadata?.mediaType || '';
               
@@ -263,6 +291,14 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
                             {asset.price ? `${formatEther(BigInt(asset.price))} ETH` : 'Not set'}
                           </span>
                         </p>
+                        {metadata?.timestamp && (
+                          <p className="flex items-center gap-1">
+                            <span>📅</span>
+                            <span className="text-gray-400">
+                              Uploaded {formatDate(metadata.timestamp)}
+                            </span>
+                          </p>
+                        )}
                       </div>
 
                       {/* Collaborators Section */}
@@ -302,15 +338,91 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
             })}
           </div>
 
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 pt-8">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 rounded-lg bg-gray-800/50 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              >
+                ← Previous
+              </button>
+              
+              <div className="flex gap-2">
+                {/* First page */}
+                {currentPage > 3 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      className="px-4 py-2 rounded-lg bg-gray-800/50 text-white hover:bg-gray-700/50 transition-all"
+                    >
+                      1
+                    </button>
+                    {currentPage > 4 && (
+                      <span className="px-2 py-2 text-gray-500">...</span>
+                    )}
+                  </>
+                )}
+
+                {/* Page numbers around current page */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(page => {
+                    return page === currentPage || 
+                           page === currentPage - 1 || 
+                           page === currentPage + 1 ||
+                           (currentPage <= 2 && page <= 3) ||
+                           (currentPage >= totalPages - 1 && page >= totalPages - 2);
+                  })
+                  .map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-4 py-2 rounded-lg transition-all font-semibold ${
+                        currentPage === page
+                          ? 'bg-teal-500 text-white'
+                          : 'bg-gray-800/50 text-white hover:bg-gray-700/50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                {/* Last page */}
+                {currentPage < totalPages - 2 && (
+                  <>
+                    {currentPage < totalPages - 3 && (
+                      <span className="px-2 py-2 text-gray-500">...</span>
+                    )}
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="px-4 py-2 rounded-lg bg-gray-800/50 text-white hover:bg-gray-700/50 transition-all"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 rounded-lg bg-gray-800/50 text-white hover:bg-gray-700/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+
           {/* Footer Stats */}
           <div className="text-center text-sm text-gray-400 pt-4">
             <p>
-              Showing <span className="text-teal-400 font-bold">{filteredAssets.length}</span> 
+              Showing <span className="text-teal-400 font-bold">{startIndex + 1}-{Math.min(endIndex, filteredAssets.length)}</span> of <span className="text-teal-400 font-bold">{filteredAssets.length}</span>
               {mediaFilter !== 'all' ? ` ${mediaFilter}` : ''} assets
               {showMyAssets && <span> created by you</span>}
               {showPurchases && <span> purchased by you</span>}
-              {mediaFilter !== 'all' && assets.length !== filteredAssets.length && (
-                <span className="text-gray-500"> (filtered from {assets.length} total)</span>
+              {totalPages > 1 && (
+                <span className="text-gray-500"> • Page {currentPage} of {totalPages}</span>
               )}
             </p>
           </div>

@@ -357,6 +357,18 @@ export default function AssetPage() {
                 <div className="space-y-2 text-sm">
                   {metadata.name && <p><span className="text-gray-400">Name:</span> <span className="font-semibold text-white">{metadata.name}</span></p>}
                   {metadata.description && <p><span className="text-gray-400">Description:</span> <span className="text-gray-300">{metadata.description}</span></p>}
+                  {metadata.timestamp && (
+                    <p>
+                      <span className="text-gray-400">Created:</span>{' '}
+                      <span className="text-gray-300">{new Date(metadata.timestamp).toLocaleString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                      })}</span>
+                    </p>
+                  )}
                   {metadata.attributes && (
                     <div className="mt-4">
                       <p className="text-gray-400 mb-2">Attributes:</p>

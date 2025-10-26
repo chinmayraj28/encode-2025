@@ -9,6 +9,7 @@ interface AssetMetadata {
   encryptedFileHash: string;
   previewHash: string;
   price: string;
+  timestamp?: string;
   collaborators?: Array<{
     address: string;
     percentage: number;
