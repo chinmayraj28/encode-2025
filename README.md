@@ -30,7 +30,8 @@ Media Mercatum solves critical problems in the creator economy: excessive platfo
 - Hardhat (development environment)
 - Wagmi v2 (React hooks for Ethereum)
 - Viem (modern Ethereum library)
-- OpenFort & RainbowKit (wallet integration)
+- Openfort (embedded wallet authentication & smart accounts)
+- RainbowKit (wallet connection UI)
 - OpenZeppelin Contracts (security standards)
 
 **Storage & Indexing**
@@ -54,6 +55,7 @@ Media Mercatum solves critical problems in the creator economy: excessive platfo
 3. Sepolia ETH (get from [Sepolia faucet](https://sepoliafaucet.com))
 4. Pinata API Key (free account at [pinata.cloud](https://pinata.cloud))
 5. WalletConnect Project ID (from [cloud.walletconnect.com](https://cloud.walletconnect.com))
+6. Openfort API Key (from [openfort.xyz](https://openfort.xyz)) - for embedded wallet authentication
 
 ## Installation & Setup
 
@@ -94,6 +96,8 @@ NEXT_PUBLIC_CONTRACT_ADDRESS=your_deployed_contract_address
 NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token
 NEXT_PUBLIC_PINATA_GATEWAY=gateway.pinata.cloud
 NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
+NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY=your_openfort_publishable_key
+NEXT_PUBLIC_SHIELD_PUBLISHABLE_KEY=your_shield_publishable_key
 ```
 
 ### 5. Deploy Smart Contract
@@ -275,6 +279,8 @@ Add environment variables in Vercel dashboard:
 - `NEXT_PUBLIC_PINATA_JWT`
 - `NEXT_PUBLIC_PINATA_GATEWAY`
 - `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
+- `NEXT_PUBLIC_OPENFORT_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_SHIELD_PUBLISHABLE_KEY`
 
 ### Deploy Envio Indexer
 
@@ -353,6 +359,7 @@ Built for the Encode Club Hackathon
 
 **Special Thanks:**
 - Encode Club for organizing the hackathon
+- Openfort for seamless wallet authentication and smart account infrastructure
 - Envio team for the blockchain indexer technology
 - OpenZeppelin for secure smart contract libraries
 - Pinata for reliable IPFS infrastructure
