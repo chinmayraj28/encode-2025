@@ -1,8 +1,8 @@
 'use client';
 
 import { useIndexedAssets } from '@/lib/hooks/useEnvioData';
-import { useAccount, useReadContract } from 'wagmi';
-import { useState, useMemo } from 'react';
+import { useAccount, useReadContracts } from 'wagmi';
+import { useState, useMemo, useEffect } from 'react';
 import { IPFSImage } from './IPFSImage';
 import { IPFSAudio } from './IPFSAudio';
 import { formatEther } from 'viem';
@@ -14,16 +14,67 @@ interface IndexedAssetsGalleryProps {
   mediaFilter?: MediaFilter;
 }
 
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
+
+const hasUsedAssetABI = [
+  {
+    name: 'hasUsedAsset',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'tokenId', type: 'uint256' },
+      { name: 'user', type: 'address' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  }
+] as const;
+
 export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAssetsGalleryProps) {
   const { address } = useAccount();
   const [showMyAssets, setShowMyAssets] = useState(false);
   const [showPurchases, setShowPurchases] = useState(false);
   const [limit, setLimit] = useState(20);
+  const [purchasedTokenIds, setPurchasedTokenIds] = useState<Set<string>>(new Set());
+  const [checkingPurchases, setCheckingPurchases] = useState(false);
 
   const creator = showMyAssets ? address : undefined;
   const { assets, loading, error } = useIndexedAssets(creator, limit);
 
-  // Filter assets based on media type and view mode
+  // Check which assets the user has purchased
+  useEffect(() => {
+    const checkPurchases = async () => {
+      if (!address || !showPurchases || assets.length === 0) {
+        setPurchasedTokenIds(new Set());
+        return;
+      }
+
+      setCheckingPurchases(true);
+      const purchased = new Set<string>();
+      
+      // Check each asset - note: this is a simplified version
+      // In production, you'd want to batch these calls or use an indexer
+      for (const asset of assets) {
+        try {
+          const response = await fetch(`/api/check-purchase?tokenId=${asset.tokenId}&user=${address}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.hasPurchased) {
+              purchased.add(asset.tokenId);
+            }
+          }
+        } catch (err) {
+          console.error('Error checking purchase for token', asset.tokenId, err);
+        }
+      }
+      
+      setPurchasedTokenIds(purchased);
+      setCheckingPurchases(false);
+    };
+
+    checkPurchases();
+  }, [address, showPurchases, assets]);
+
+  // Filter assets based on media type and purchase status
   const filteredAssets = useMemo(() => {
     let filtered = [...assets];
 
@@ -35,13 +86,13 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
       });
     }
 
-    // For purchases view, we would need to check if user has purchased (hasUsedAsset)
-    // This requires reading from the contract for each asset
-    // For now, we'll show all assets in purchases mode and add a "Purchased" badge
-    // A more complete implementation would fetch purchase data from Envio indexer
+    // Filter by purchases
+    if (showPurchases && address) {
+      filtered = filtered.filter(asset => purchasedTokenIds.has(asset.tokenId));
+    }
 
     return filtered;
-  }, [assets, mediaFilter]);
+  }, [assets, mediaFilter, showPurchases, address, purchasedTokenIds]);
 
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType.toLowerCase()) {
@@ -118,10 +169,12 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
         </div>
       </div>
 
-      {loading ? (
+      {loading || (showPurchases && checkingPurchases) ? (
         <div className="flex flex-col justify-center items-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-500 mb-4"></div>
-          <p className="text-gray-400 animate-pulse">Loading indexed assets...</p>
+          <p className="text-gray-400 animate-pulse">
+            {showPurchases && checkingPurchases ? 'Checking your purchases...' : 'Loading indexed assets...'}
+          </p>
         </div>
       ) : filteredAssets.length === 0 ? (
         <div className="text-center py-20 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-xl">
