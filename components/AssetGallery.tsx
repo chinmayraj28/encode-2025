@@ -202,9 +202,9 @@ export default function AssetGallery() {
 
         {/* Progress bar */}
         <div className="w-full max-w-md space-y-2">
-          <div className="h-3 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
+          <div className="h-3 bg-gray-800/50 rounded-full overflow-hidden border border-gray-700/30">
             <div 
-              className="h-full bg-gradient-to-r from-purple-600 to-blue-600 transition-all duration-300 ease-out relative"
+              className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-300 ease-out relative"
               style={{ width: `${loadingProgress}%` }}
             >
               <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
@@ -216,7 +216,7 @@ export default function AssetGallery() {
         </div>
 
         {/* Fun loading messages */}
-        <div className="text-center text-sm text-purple-400 animate-pulse">
+        <div className="text-center text-sm text-teal-400 animate-pulse">
           {loadingProgress < 30 && "🔗 Connecting to blockchain..."}
           {loadingProgress >= 30 && loadingProgress < 60 && "📦 Fetching asset metadata..."}
           {loadingProgress >= 60 && loadingProgress < 90 && "🖼️ Loading previews from IPFS..."}
@@ -276,7 +276,7 @@ function AssetCard({
   };
 
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl overflow-hidden hover:border-purple-500 transition-all group">
+    <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-xl overflow-hidden hover:border-gray-600/50 transition-all group">
       <Link href={`/asset/${asset.tokenId}`} className="block">
         {/* Preview Section */}
         <div className="relative w-full h-48 bg-gray-900/50 flex items-center justify-center overflow-hidden">
@@ -306,14 +306,14 @@ function AssetCard({
           )}
           
           {/* Token ID Badge */}
-          <div className="absolute top-3 right-3 bg-purple-600 px-3 py-1 rounded-full text-xs font-bold">
+          <div className="absolute top-3 right-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700/50 px-3 py-1 rounded-full text-xs font-bold text-gray-300">
             #{asset.tokenId}
           </div>
         </div>
 
         {/* Content Section */}
         <div className="p-6">
-          <h3 className="text-lg font-bold mb-2 group-hover:text-purple-400 transition-colors line-clamp-2">
+          <h3 className="text-lg font-bold mb-2 group-hover:text-teal-400 transition-colors line-clamp-2 text-white">
             {asset.title || `${asset.mediaType.charAt(0).toUpperCase() + asset.mediaType.slice(1)} Asset`}
           </h3>
           
@@ -325,13 +325,13 @@ function AssetCard({
           
           <div className="space-y-2 text-sm text-gray-400 mb-4">
             <p>📅 <span className="text-gray-300">{formatDate(asset.uploadTimestamp)}</span></p>
-            <p>Creator: <span className="text-purple-400">{formatAddress(asset.creator)}</span></p>
+            <p>Creator: <span className="text-teal-400">{formatAddress(asset.creator)}</span></p>
             <p>Price: <span className="text-green-400">{formatEther(asset.price || BigInt(0))} ETH</span></p>
             <p>Uses: <span className="text-blue-400">{asset.usageCount.toString()}</span></p>
           </div>
           
-          <div className="bg-purple-600/20 border border-purple-600 rounded-lg px-3 py-2 text-center group-hover:bg-purple-600/30 transition-colors">
-            <span className="text-sm font-semibold">👁️ View Details & Purchase</span>
+          <div className="bg-teal-500/10 border border-teal-500/30 rounded-lg px-3 py-2 text-center group-hover:bg-teal-500/20 transition-colors">
+            <span className="text-sm font-semibold text-teal-400">👁️ View Details & Purchase</span>
           </div>
         </div>
       </Link>

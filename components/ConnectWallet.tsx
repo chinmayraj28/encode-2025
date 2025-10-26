@@ -107,7 +107,7 @@ export default function ConnectWallet() {
     return (
       <button
         onClick={() => open()}
-        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-6 py-2.5 rounded-lg font-semibold transition-all transform hover:scale-105"
+        className="px-6 py-2.5 bg-white text-gray-900 rounded-full font-semibold text-sm hover:bg-gray-100 transition-all shadow-md hover:shadow-lg hover:scale-105"
       >
         Connect Wallet
       </button>
@@ -160,26 +160,26 @@ export default function ConnectWallet() {
             setShowNetworkMenu(!showNetworkMenu);
             setShowDropdown(false);
           }}
-          className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg border border-gray-700 transition-all"
+          className="flex items-center gap-2 bg-gray-800/50 hover:bg-gray-700/50 px-3 py-2 rounded-lg border border-gray-700/30 transition-all text-sm"
         >
           <div className={`w-2 h-2 rounded-full ${getNetworkColor(chain?.id || 0)}`} />
-          <span className="text-sm font-medium">{chain?.name || 'Unknown'}</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span className="text-xs font-medium text-gray-300">{chain?.name || 'Unknown'}</span>
+          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {/* Network Dropdown */}
         {showNetworkMenu && (
-          <div className="absolute top-full mt-2 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl min-w-[200px] z-50">
+          <div className="absolute top-full mt-2 right-0 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl min-w-[200px] z-50">
             <div className="p-2">
               <div className="text-xs text-gray-400 px-3 py-2 font-semibold">Select Network</div>
               {SUPPORTED_CHAINS.map((supportedChain) => (
                 <button
                   key={supportedChain.id}
                   onClick={() => handleSwitchNetwork(supportedChain.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-700 transition-all ${
-                    chain?.id === supportedChain.id ? 'bg-gray-700' : ''
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800/50 transition-all text-sm ${
+                    chain?.id === supportedChain.id ? 'bg-gray-800/50' : ''
                   }`}
                 >
                   <div className={`w-2 h-2 rounded-full ${getNetworkColor(supportedChain.id)}`} />
@@ -207,35 +207,34 @@ export default function ConnectWallet() {
             setShowDropdown(!showDropdown);
             setShowNetworkMenu(false);
           }}
-          className="flex items-center gap-3 bg-gray-800 hover:bg-gray-700 px-4 py-2.5 rounded-lg border border-gray-700 transition-all"
+          className="flex items-center gap-2 bg-gray-800/50 hover:bg-gray-700/50 px-3 py-2 rounded-lg border border-gray-700/30 transition-all"
         >
           {/* Balance */}
-          <div className="text-right">
-            <div className="text-sm font-semibold">
-              {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : '0.0000 ETH'}
+          <div className="text-right hidden sm:block">
+            <div className="text-xs font-medium text-white">
+              {balance ? `${Number(balance.formatted).toFixed(3)} ${balance.symbol}` : '0.000 ETH'}
             </div>
-            <div className="text-xs text-gray-400">{address ? shortenAddress(address) : ''}</div>
           </div>
           
           {/* Avatar */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-            <span className="text-xs font-bold">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 flex items-center justify-center">
+            <span className="text-xs font-bold text-white">
               {address ? address.substring(2, 4).toUpperCase() : '??'}
             </span>
           </div>
 
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {/* Wallet Dropdown */}
         {showDropdown && (
-          <div className="absolute top-full mt-2 right-0 bg-gray-800 border border-gray-700 rounded-lg shadow-xl min-w-[280px] z-50">
-            <div className="p-4 border-b border-gray-700">
+          <div className="absolute top-full mt-2 right-0 bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-xl shadow-2xl min-w-[280px] z-50">
+            <div className="p-4 border-b border-gray-700/50">
               <div className="text-xs text-gray-400 mb-2">Wallet Address</div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm bg-gray-900 px-3 py-2 rounded border border-gray-700 font-mono">
+                <code className="flex-1 text-xs bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-700/30 font-mono text-gray-300">
                   {address}
                 </code>
                 <button
@@ -259,9 +258,9 @@ export default function ConnectWallet() {
               )}
             </div>
 
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-4 border-b border-gray-700/50">
               <div className="text-xs text-gray-400 mb-2">Balance</div>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold text-white">
                 {balance ? `${Number(balance.formatted).toFixed(4)} ${balance.symbol}` : '0.0000 ETH'}
               </div>
             </div>
@@ -269,7 +268,7 @@ export default function ConnectWallet() {
             <div className="p-2">
               <button
                 onClick={handleDisconnect}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-900/50 text-red-400 hover:text-red-300 transition-all"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-all text-sm"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

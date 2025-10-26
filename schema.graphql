@@ -1,0 +1,67 @@
+type MediaAssetNFT_Approval {
+  id: ID!
+  owner: String!
+  approved: String!
+  tokenId: BigInt!
+}
+
+type MediaAssetNFT_ApprovalForAll {
+  id: ID!
+  owner: String!
+  operator: String!
+  approved: Boolean!
+}
+
+type MediaAssetNFT_AssetUsed {
+  id: ID!
+  tokenId: BigInt!
+  user: String!
+  paymentAmount: BigInt!
+}
+
+type MediaAssetNFT_BatchMetadataUpdate {
+  id: ID!
+  _fromTokenId: BigInt!
+  _toTokenId: BigInt!
+}
+
+type MediaAssetNFT_DecryptionKeyReleased {
+  id: ID!
+  tokenId: BigInt!
+  buyer: String!
+  decryptionKey: String!
+}
+
+type MediaAssetNFT_MediaAssetMinted {
+  id: ID!
+  tokenId: BigInt!
+  creator: String!
+  ipfsHash: String!
+  mediaType: String!
+}
+
+type MediaAssetNFT_MetadataUpdate {
+  id: ID!
+  _tokenId: BigInt!
+}
+
+type MediaAssetNFT_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type MediaAssetNFT_RoyaltyPaid {
+  id: ID!
+  tokenId: BigInt!
+  recipient: String!
+  amount: BigInt!
+}
+
+type MediaAssetNFT_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  tokenId: BigInt!
+}
+

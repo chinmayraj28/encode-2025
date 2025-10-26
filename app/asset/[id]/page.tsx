@@ -5,9 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt, useReadContract, useWatchContractEvent } from 'wagmi';
 import { parseEther, formatEther, encodeFunctionData } from 'viem';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 import { decryptFile, downloadDecryptedFile } from '@/lib/encryption';
 import { IPFSImage } from '@/components/IPFSImage';
 import { IPFSAudio } from '@/components/IPFSAudio';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
@@ -264,41 +267,46 @@ export default function AssetPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-2xl">⏳ Loading asset...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-teal-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-300">Loading asset...</p>
+        </div>
       </div>
     );
   }
 
   if (!asset) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-teal-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">❌ Asset Not Found</h1>
-          <Link href="/" className="text-purple-400 hover:underline">← Back to Gallery</Link>
+          <Link href="/marketplace" className="text-teal-400 hover:text-teal-300 transition-colors">
+            ← Back to Marketplace
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-teal-900 relative overflow-hidden">
+      {/* Fading grid background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] pointer-events-none"></div>
+      
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-900/20 to-teal-500/30 pointer-events-none"></div>
+
       {/* Header */}
-      <header className="border-b border-gray-800 backdrop-blur-sm bg-black/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/" className="inline-flex items-center text-purple-400 hover:text-purple-300">
-            ← Back to Gallery
-          </Link>
-        </div>
-      </header>
+      <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Preview */}
           <div className="space-y-6">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
+            <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold">Asset Preview</h2>
+                <h2 className="text-2xl font-bold text-white">Asset Preview</h2>
                 <span className="text-6xl">{getMediaIcon(asset.mediaType)}</span>
               </div>
 
@@ -315,7 +323,7 @@ export default function AssetPage() {
                   href={`https://gateway.pinata.cloud/ipfs/${asset.previewHash || asset.ipfsHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-center font-semibold transition-all"
+                  className="block w-full px-4 py-3 bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 rounded-lg text-center font-semibold transition-all text-teal-400"
                 >
                   🔗 Open Preview in IPFS
                 </a>
@@ -323,7 +331,7 @@ export default function AssetPage() {
                   <button
                     onClick={handleDecryptAndDownload}
                     disabled={isDecrypting}
-                    className="block w-full px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg text-center font-semibold transition-all"
+                    className="block w-full px-4 py-3 bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 disabled:bg-gray-600/50 rounded-lg text-center font-semibold transition-all text-green-400"
                   >
                     {isDecrypting ? '⏳ Decrypting...' : '� Download Full Version (Decrypted)'}
                   </button>
@@ -332,30 +340,30 @@ export default function AssetPage() {
 
               {/* Decryption Status */}
               {decryptionStatus && (
-                <div className={`mt-4 p-4 rounded-lg ${
-                  decryptionStatus.includes('❌') ? 'bg-red-900/50 border border-red-700' : 
-                  decryptionStatus.includes('✅') ? 'bg-green-900/50 border border-green-700' :
-                  'bg-blue-900/50 border border-blue-700'
+                <div className={`mt-4 p-4 rounded-lg backdrop-blur-sm ${
+                  decryptionStatus.includes('❌') ? 'bg-red-900/20 border border-red-500/30' : 
+                  decryptionStatus.includes('✅') ? 'bg-green-900/20 border border-green-500/30' :
+                  'bg-blue-900/20 border border-blue-500/30'
                 }`}>
-                  <p className="text-sm text-center">{decryptionStatus}</p>
+                  <p className="text-sm text-center text-gray-200">{decryptionStatus}</p>
                 </div>
               )}
             </div>
 
             {/* Metadata Card */}
             {metadata && (
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
-                <h3 className="text-xl font-bold mb-4">📝 Metadata</h3>
+              <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
+                <h3 className="text-xl font-bold mb-4 text-white">📝 Metadata</h3>
                 <div className="space-y-2 text-sm">
-                  {metadata.name && <p><span className="text-gray-400">Name:</span> <span className="font-semibold">{metadata.name}</span></p>}
-                  {metadata.description && <p><span className="text-gray-400">Description:</span> <span>{metadata.description}</span></p>}
+                  {metadata.name && <p><span className="text-gray-400">Name:</span> <span className="font-semibold text-white">{metadata.name}</span></p>}
+                  {metadata.description && <p><span className="text-gray-400">Description:</span> <span className="text-gray-300">{metadata.description}</span></p>}
                   {metadata.attributes && (
                     <div className="mt-4">
                       <p className="text-gray-400 mb-2">Attributes:</p>
                       <div className="space-y-1">
                         {metadata.attributes.map((attr: any, idx: number) => (
                           <p key={idx} className="ml-4">
-                            <span className="text-purple-400">{attr.trait_type}:</span> {attr.value}
+                            <span className="text-teal-400">{attr.trait_type}:</span> <span className="text-gray-300">{attr.value}</span>
                           </p>
                         ))}
                       </div>
@@ -369,18 +377,18 @@ export default function AssetPage() {
           {/* Right Column - Details */}
           <div className="space-y-6">
             {/* Asset Details */}
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6">
+            <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-3xl font-bold">
+                <h1 className="text-3xl font-bold text-white">
                   {metadata?.name || `${asset.mediaType.charAt(0).toUpperCase() + asset.mediaType.slice(1)} Asset`}
                 </h1>
-                <span className="text-lg bg-purple-600 px-4 py-2 rounded-full">
+                <span className="text-lg bg-teal-500/10 border border-teal-500/30 px-4 py-2 rounded-full text-teal-400 font-bold">
                   #{asset.tokenId}
                 </span>
               </div>
 
               {metadata?.description && (
-                <p className="text-gray-300 mb-6 pb-6 border-b border-gray-700">
+                <p className="text-gray-300 mb-6 pb-6 border-b border-gray-700/50">
                   {metadata.description}
                 </p>
               )}
@@ -388,7 +396,7 @@ export default function AssetPage() {
               <div className="space-y-4">
                 <InfoRow label="Creator" value={asset.creator} isAddress />
                 {asset.price !== undefined && (
-                  <InfoRow label="Price" value={`${formatEther(asset.price)} ETH`} highlight="purple" />
+                  <InfoRow label="Price" value={`${formatEther(asset.price)} ETH`} highlight="teal" />
                 )}
                 <InfoRow label="Total Uses" value={asset.usageCount.toString()} highlight="blue" />
                 <InfoRow label="Total Revenue" value={`${formatEther(asset.totalRevenue)} ETH`} highlight="yellow" />
@@ -396,9 +404,9 @@ export default function AssetPage() {
                   label="Upload Date" 
                   value={new Date(Number(asset.uploadTimestamp) * 1000).toLocaleString()} 
                 />
-                <div className="pt-4 border-t border-gray-700">
+                <div className="pt-4 border-t border-gray-700/50">
                   <p className="text-sm text-gray-400 mb-2">IPFS Hash:</p>
-                  <p className="text-xs bg-gray-900 px-3 py-2 rounded font-mono break-all">
+                  <p className="text-xs bg-gray-900/50 px-3 py-2 rounded font-mono break-all text-gray-300 border border-gray-700/30">
                     {asset.ipfsHash}
                   </p>
                 </div>
@@ -407,14 +415,14 @@ export default function AssetPage() {
 
             {/* Purchase/Use Card */}
             {isConnected ? (
-              <div className="bg-gradient-to-br from-purple-900/50 to-pink-900/50 backdrop-blur-sm border border-purple-700 rounded-xl p-6">
-                <h3 className="text-2xl font-bold mb-4">
+              <div className="bg-gradient-to-br from-teal-900/30 to-cyan-900/30 backdrop-blur-sm border border-teal-500/30 rounded-2xl p-6">
+                <h3 className="text-2xl font-bold mb-4 text-white">
                   {decryptionKey ? '✅ You Own This Asset' : '💰 Purchase This Asset'}
                 </h3>
                 
                 {decryptionKey ? (
                   <div className="space-y-4">
-                    <div className="bg-green-900/30 border border-green-700 rounded-lg p-4">
+                    <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-4">
                       <p className="text-green-400 font-semibold mb-2">🔑 Access Granted!</p>
                       <p className="text-sm text-gray-300 mb-4">
                         You have purchased this asset and can now download the full, unencrypted version.
@@ -422,21 +430,21 @@ export default function AssetPage() {
                       <button
                         onClick={handleDecryptAndDownload}
                         disabled={isDecrypting}
-                        className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 rounded-lg font-bold transition-all"
+                        className="w-full px-6 py-3 bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 disabled:bg-gray-600/50 rounded-lg font-bold transition-all text-green-400"
                       >
                         {isDecrypting ? '⏳ Decrypting...' : '🔓 Download Full File'}
                       </button>
                     </div>
                     
-                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                    <div className="bg-gray-900/50 border border-gray-700/30 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Your Decryption Key:</p>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(decryptionKey);
-                            alert('✅ Decryption key copied to clipboard!');
+                            toast.success('✅ Decryption key copied to clipboard!');
                           }}
-                          className="text-xs bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded transition-colors"
+                          className="text-xs bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 px-2 py-1 rounded transition-colors text-teal-400"
                         >
                           📋 Copy
                         </button>
@@ -452,21 +460,21 @@ export default function AssetPage() {
                 ) : (
                   <>
                     <p className="text-gray-300 mb-6">
-                      Purchase this encrypted asset for <span className="text-purple-400 font-bold text-xl">{asset.price ? formatEther(asset.price) : '0'} ETH</span>. Upon payment, you'll receive the decryption key to unlock the full file.
+                      Purchase this encrypted asset for <span className="text-teal-400 font-bold text-xl">{asset.price ? formatEther(asset.price) : '0'} ETH</span>. Upon payment, you'll receive the decryption key to unlock the full file.
                     </p>
 
                     <div className="space-y-4">
                       {asset.price !== undefined ? (
                         <>
-                          <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-4">
-                            <p className="text-purple-400 font-semibold mb-2">💰 Purchase Price</p>
+                          <div className="bg-teal-900/20 border border-teal-500/30 rounded-lg p-4">
+                            <p className="text-teal-400 font-semibold mb-2">💰 Purchase Price</p>
                             <p className="text-3xl font-bold text-white">{formatEther(asset.price)} ETH</p>
                             <p className="text-sm text-gray-400 mt-2">
                               Set by creator
                             </p>
                           </div>
 
-                          <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                             <p className="text-blue-400 font-semibold mb-2">🔒 File Protection</p>
                             <p className="text-sm text-gray-300">
                               The full file is encrypted with AES-256. Only buyers receive the decryption key stored in the smart contract.
@@ -476,19 +484,19 @@ export default function AssetPage() {
                           <button
                             onClick={handleUseAsset}
                             disabled={isPending || isConfirming}
-                            className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all"
+                            className="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 disabled:from-gray-600 disabled:to-gray-700 rounded-lg font-bold text-lg transition-all text-white shadow-lg shadow-teal-500/20"
                           >
                             {isPending ? '⏳ Confirming...' : isConfirming ? '⏳ Processing...' : `🚀 Purchase for ${formatEther(asset.price)} ETH`}
                           </button>
 
                           {isSuccess && !decryptionKey && (
-                            <div className="bg-blue-900/50 border border-blue-700 rounded-lg p-4 text-center">
+                            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 text-center">
                               ⏳ Transaction successful! Waiting for decryption key...
                             </div>
                           )}
                         </>
                       ) : (
-                        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4">
+                        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
                           <p className="text-red-400 font-semibold mb-2">⚠️ Legacy Asset</p>
                           <p className="text-sm text-gray-300">
                             This asset was created with an older version of the contract and cannot be purchased. Please upload new assets to use the pricing system.
@@ -500,16 +508,19 @@ export default function AssetPage() {
                 )}
               </div>
             ) : (
-              <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 text-center">
+              <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-2xl p-6 text-center">
                 <p className="text-gray-400 mb-4">Connect your wallet to purchase this asset</p>
-                <Link href="/" className="text-purple-400 hover:underline">
-                  Go to home page to connect
+                <Link href="/marketplace" className="text-teal-400 hover:text-teal-300 transition-colors">
+                  Go to marketplace to connect
                 </Link>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </main>
   );
 }
@@ -667,7 +678,7 @@ function InfoRow({ label, value, isAddress, highlight }: {
   label: string; 
   value: string; 
   isAddress?: boolean;
-  highlight?: 'green' | 'blue' | 'yellow' | 'purple';
+  highlight?: 'green' | 'blue' | 'yellow' | 'teal';
 }) {
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
@@ -678,13 +689,13 @@ function InfoRow({ label, value, isAddress, highlight }: {
       case 'green': return 'text-green-400';
       case 'blue': return 'text-blue-400';
       case 'yellow': return 'text-yellow-400';
-      case 'purple': return 'text-purple-400';
+      case 'teal': return 'text-teal-400';
       default: return 'text-white';
     }
   };
 
   return (
-    <div className="flex justify-between items-center py-2 border-b border-gray-700">
+    <div className="flex justify-between items-center py-2 border-b border-gray-700/50">
       <span className="text-gray-400">{label}:</span>
       <span className={`font-semibold ${getHighlightColor()}`}>
         {isAddress ? formatAddress(value) : value}

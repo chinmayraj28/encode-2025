@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-ethers");
+require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -17,17 +18,11 @@ module.exports = {
       url: process.env.SEPOLIA_RPC || "https://rpc.sepolia.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 11155111
-    },
-    arbitrumSepolia: {
-      url: process.env.ARBITRUM_SEPOLIA_RPC || "https://sepolia-rollup.arbitrum.io/rpc",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      chainId: 421614
     }
   },
   etherscan: {
     apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY || "",
-      arbitrumSepolia: process.env.ARBISCAN_API_KEY || ""
+      sepolia: process.env.ETHERSCAN_API_KEY || ""
     }
   }
 };

@@ -75,7 +75,7 @@ export async function GET(
         abi: CONTRACT_ABI,
         functionName: 'getMediaAsset',
         args: [tokenId],
-      });
+      } as any);
 
       // Also fetch tokenURI to get metadata
       const tokenURI = await client.readContract({
@@ -83,18 +83,18 @@ export async function GET(
         abi: CONTRACT_ABI,
         functionName: 'tokenURI',
         args: [tokenId],
-      });
+      } as any);
 
       return NextResponse.json({
-        ipfsHash: asset.ipfsHash,
-        previewHash: asset.previewHash,
-        mediaType: asset.mediaType,
-        uploadTimestamp: asset.uploadTimestamp.toString(),
-        creator: asset.creator,
-        price: asset.price.toString(),
-        usageCount: asset.usageCount.toString(),
-        totalRevenue: asset.totalRevenue.toString(),
-        tokenURI: tokenURI,
+        ipfsHash: (asset as any).ipfsHash,
+        previewHash: (asset as any).previewHash,
+        mediaType: (asset as any).mediaType,
+        uploadTimestamp: (asset as any).uploadTimestamp.toString(),
+        creator: (asset as any).creator,
+        price: (asset as any).price.toString(),
+        usageCount: (asset as any).usageCount.toString(),
+        totalRevenue: (asset as any).totalRevenue.toString(),
+        tokenURI: tokenURI as string,
       });
     } catch (contractError: any) {
       // Handle rate limit errors specifically

@@ -93,9 +93,6 @@ export function IPFSImage({ ipfsHash, alt, className, fallback }: IPFSImageProps
           <source src={currentUrl} />
           Your browser does not support video playback.
         </video>
-        <p className="text-xs text-yellow-400 mt-2 text-center">
-          ⚠️ Old video preview format - Re-upload for static image preview
-        </p>
       </div>
     );
   }

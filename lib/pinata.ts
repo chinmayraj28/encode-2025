@@ -1,4 +1,4 @@
-import { PinataSDK } from 'pinata';
+import { PinataSDK } from 'pinata-web3';
 
 const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT || '';
 const PINATA_GATEWAY = process.env.NEXT_PUBLIC_PINATA_GATEWAY || 'gateway.pinata.cloud';
@@ -10,7 +10,7 @@ export const pinata = new PinataSDK({
 
 export const uploadFileToPinata = async (file: File) => {
   try {
-    const upload = await pinata.upload.public.file(file);
+    const upload = await pinata.upload.file(file);
     return upload;
   } catch (error) {
     console.error('Error uploading file to Pinata:', error);
@@ -20,7 +20,7 @@ export const uploadFileToPinata = async (file: File) => {
 
 export const uploadJSONToPinata = async (json: any) => {
   try {
-    const upload = await pinata.upload.public.json(json);
+    const upload = await pinata.upload.json(json);
     return upload;
   } catch (error) {
     console.error('Error uploading JSON to Pinata:', error);
