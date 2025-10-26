@@ -1,11 +1,14 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./app/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    // You can enable Turbopack safely if you want:
+    turbo: true, // "turbo" is the correct key in Next.js 16+
   },
-  plugins: [],
-}
+  webpack: (config) => {
+    // Optional: if you need to customize webpack
+    return config;
+  },
+};
+
+module.exports = nextConfig;
