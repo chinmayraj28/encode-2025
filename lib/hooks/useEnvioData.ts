@@ -57,35 +57,40 @@ interface TokenHistory {
 /**
  * Hook to fetch indexed assets from Envio
  */
-export function useIndexedAssets(creator?: string, limit: number = 10) {
+export function useIndexedAssets(creator?: string) {
   const [assets, setAssets] = useState<MintedAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetch, setLastFetch] = useState<number>(0);
+
+  const fetchAssets = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (creator) params.append('creator', creator);
+
+      console.log('🔄 Fetching assets from Envio...', { creator });
+      const response = await fetch(`/api/indexed-assets?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch assets');
+      
+      const data = await response.json();
+      const fetchedAssets = data.MediaAssetNFT_MediaAssetMinted || [];
+      console.log(`✅ Fetched ${fetchedAssets.length} assets from Envio`);
+      setAssets(fetchedAssets);
+      setLastFetch(Date.now());
+    } catch (err) {
+      console.error('❌ Error fetching assets:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchAssets() {
-      try {
-        setLoading(true);
-        const params = new URLSearchParams();
-        if (creator) params.append('creator', creator);
-        params.append('limit', limit.toString());
-
-        const response = await fetch(`/api/indexed-assets?${params}`);
-        if (!response.ok) throw new Error('Failed to fetch assets');
-        
-        const data = await response.json();
-        setAssets(data.MediaAssetNFT_MediaAssetMinted || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchAssets();
-  }, [creator, limit]);
+  }, [creator]);
 
-  return { assets, loading, error };
+  return { assets, loading, error, refetch: fetchAssets, lastFetch };
 }
 
 /**

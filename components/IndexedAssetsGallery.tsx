@@ -31,15 +31,58 @@ const hasUsedAssetABI = [
 
 export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAssetsGalleryProps) {
   const { address } = useAccount();
-  const [showMyAssets, setShowMyAssets] = useState(false);
-  const [showPurchases, setShowPurchases] = useState(false);
+  const [showMyAssets, setShowMyAssets] = useState(false); // Always starts false
+  const [showPurchases, setShowPurchases] = useState(false); // Always starts false
   const [currentPage, setCurrentPage] = useState(1);
   const [purchasedTokenIds, setPurchasedTokenIds] = useState<Set<string>>(new Set());
   const [checkingPurchases, setCheckingPurchases] = useState(false);
   const assetsPerPage = 12; // Fixed number of assets per page
 
   const creator = showMyAssets ? address : undefined;
-  const { assets, loading, error } = useIndexedAssets(creator, 1000); // Load more assets for pagination
+  const { assets, loading, error, refetch, lastFetch } = useIndexedAssets(creator); // Fetch all assets, pagination handled client-side
+
+  // Auto-refresh every 30 seconds to catch newly indexed assets
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing assets...');
+      refetch();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [refetch]);
+
+  // Log filter state and asset fetching
+  useEffect(() => {
+    console.log('🔍 Filter State:', {
+      showMyAssets,
+      showPurchases,
+      mediaFilter,
+      creatorFilter: creator,
+      connectedAddress: address
+    });
+  }, [showMyAssets, showPurchases, mediaFilter, creator, address]);
+
+  // Log asset names when assets are fetched
+  useEffect(() => {
+    if (assets.length > 0) {
+      console.log('\n📦 FETCHED ASSETS:');
+      console.log('==================');
+      assets.forEach((asset, index) => {
+        const name = asset.metadata?.name || `Asset #${asset.tokenId}`;
+        const mediaType = asset.mediaType || 'unknown';
+        console.log(`${index + 1}. ${name} (${mediaType}) - Token #${asset.tokenId}`);
+      });
+      console.log(`\nTotal: ${assets.length} assets`);
+      console.log('Filter applied:', showMyAssets ? 'My Assets' : 'All Assets');
+      console.log('==================\n');
+    } else if (!loading) {
+      console.log('⚠️ No assets fetched. Filter state:', {
+        showMyAssets,
+        creator,
+        address
+      });
+    }
+  }, [assets, showMyAssets, loading, creator, address]);
 
   // Check which assets the user has purchased
   useEffect(() => {
@@ -161,9 +204,27 @@ export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAss
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-xl p-4">
         <div>
           <h2 className="text-2xl font-bold text-white">⚡ Indexed Assets</h2>
-          <p className="text-xs text-gray-400 mt-1">Powered by Envio • Lightning Fast Queries</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Powered by Envio • Lightning Fast Queries
+            {lastFetch > 0 && (
+              <span className="ml-2">
+                • Last updated: {new Date(lastFetch).toLocaleTimeString()}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              refetch();
+            }}
+            disabled={loading}
+            className="px-4 py-2 rounded-lg transition-all font-semibold bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh assets from Envio"
+          >
+            {loading ? '⏳ Refreshing...' : '🔄 Refresh'}
+          </button>
           {address && (
             <>
               <button

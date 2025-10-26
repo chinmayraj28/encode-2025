@@ -94,11 +94,11 @@ export async function queryGraphQL<T = any>(
 /**
  * Query all minted media assets with full metadata
  */
-export async function getMediaAssetsMinted(limit: number = 10) {
+export async function getMediaAssetsMinted(limit?: number) {
   const query = `
     query GetMintedAssets($limit: Int) {
       MediaAssetNFT_MediaAssetMinted(
-        limit: $limit
+        ${limit ? 'limit: $limit' : ''}
         order_by: { id: desc }
       ) {
         id
@@ -118,7 +118,7 @@ export async function getMediaAssetsMinted(limit: number = 10) {
       ipfsHash: string;
       mediaType: string;
     }>;
-  }>(query, { limit });
+  }>(query, limit ? { limit } : {});
 
   // Fetch metadata and preview hash from contract
   const assetsWithMetadata = await Promise.all(
@@ -194,12 +194,13 @@ export async function getMediaAssetsMinted(limit: number = 10) {
 /**
  * Query assets by creator address with full metadata
  */
-export async function getAssetsByCreator(creator: string) {
+export async function getAssetsByCreator(creator: string, limit?: number) {
   const query = `
-    query GetAssetsByCreator($creator: String!) {
+    query GetAssetsByCreator($creator: String!, $limit: Int) {
       MediaAssetNFT_MediaAssetMinted(
         where: { creator: { _eq: $creator } }
         order_by: { id: desc }
+        ${limit ? 'limit: $limit' : ''}
       ) {
         id
         tokenId
@@ -218,7 +219,7 @@ export async function getAssetsByCreator(creator: string) {
       ipfsHash: string;
       mediaType: string;
     }>;
-  }>(query, { creator });
+  }>(query, limit ? { creator, limit } : { creator });
 
   // Fetch metadata and preview hash from contract
   const assetsWithMetadata = await Promise.all(

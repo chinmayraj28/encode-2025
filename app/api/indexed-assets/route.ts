@@ -9,16 +9,15 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const creator = searchParams.get('creator');
-    const limit = parseInt(searchParams.get('limit') || '10');
 
     let data;
     
     if (creator) {
-      // Get assets by specific creator
+      // Get assets by specific creator (no limit - get all their assets)
       data = await getAssetsByCreator(creator);
     } else {
-      // Get all assets
-      data = await getMediaAssetsMinted(limit);
+      // Get all assets (no limit - pagination handled client-side)
+      data = await getMediaAssetsMinted();
     }
 
     return NextResponse.json(data);
