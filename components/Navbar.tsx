@@ -17,7 +17,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
               <span className="text-xl font-bold text-white group-hover:text-gray-300 transition-colors">
-                ArtistChain
+                Media Mercatum
               </span>
             </Link>
 
