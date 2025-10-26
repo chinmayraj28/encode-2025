@@ -1,0 +1,39 @@
+});  value: ethers.utils.parseEther("100")   // change amount as needed  to: "0x56435Bb20BCca9bC41Bd6DaaE88ddA7A98b9018a",await signers[0].sendTransaction({
+for (let i=0;i<signers.length;i++) console.log(i, signers[i].address, ethers.utils.formatEther(await ethers.provider.getBalance(signers[i].address)));
+const signers = await ethers.getSigners();
+});
+for (let i=0;i<signers.length;i++) console.log(i, signers[i].address, ethers.utils.formatEther(await ethers.provider.getBalance(signers[i].address)));
+const signers = await ethers.getSigners();
+});  value: ethers.utils.parseEther("100")  // Replace 5600 with desired ETH amount  to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686",await signers[0].sendTransaction({
+const signers = await ethers.getSigners();
+});  value: ethers.utils.parseEther("5600")  // Replace 5600 with desired ETH amount  to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686",await signers[0].sendTransaction({
+const signers = await ethers.getSigners();
+await ethers.provider.getTransactionReceipt("0xecfdc4d10d8b502eac9366ca506d0a6246a621a9d31313d4762813449748af8e");
+console.log(ADDRESS, ethers.utils.formatEther(await ethers.provider.getBalance(ADDRESS)) + ' ETH');
+const ADDRESS = "0xB796131C8307F892137f9B50b424fFE833B2b927";
+}  console.log(`#${i}`, addr, ethers.utils.formatEther(bal) + ' ETH');  const bal = await ethers.provider.getBalance(addr);  const addr = signerList[i].address;for (let i = 0; i < signerList.length; i++) {
+const signerList = await ethers.getSigners();
+// Paste into Hardhat console
+});  value: ethers.utils.parseEther("5600")   // change amount as needed  to: "0xB796131C8307F892137f9B50b424fFE833B2b927",await signers[0].sendTransaction({
+for (let i=0;i<signers.length;i++) console.log(i, signers[i].address, ethers.utils.formatEther(await ethers.provider.getBalance(signers[i].address)));
+const signers = await ethers.getSigners();
+}  console.log(`#${i}`, addr, ethers.utils.formatEther(bal) + ' ETH');  const bal = await ethers.provider.getBalance(addr);  const addr = signers[i].address;for (let i = 0; i < signers.length; i++) {
+const signers = await ethers.getSigners();
+  console.log(`#${i}`, addr, ethers.utils.formatEther(bal) + ' ETH');  const bal = await ethers.provider.getBalance(addr);  const addr = signers[i].address;for (let i = 0; i < signers.length; i++) {
+const signers = await ethers.getSigners();
+// Paste into Hardhat console
+  console.log(`#${i}`, addr, ethers.utils.formatEther(bal) + ' ETH');  const bal = await ethers.provider.getBalance(addr);  const addr = signers[i].address;for (let i = 0; i < signers.length; i++) {
+const signers = await ethers.getSigners();
+// Paste into Hardhat console
+console.log(signers)
+const signers = await ethers.getSigners();
+await signerList[1].sendTransaction({ to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686", value: ethers.utils.parseEther("5600") });
+const signerList = await ethers.getSigners(); for (let i = 0; i < signerList.length; i++) { console.log(i, signerList[i].address, ethers.utils.formatEther(await ethers.provider.getBalance(signerList[i].address))); }
+const sender = signerList[1]; await sender.sendTransaction({ to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686", value: ethers.utils.parseEther("5600") });
+const signerList = await ethers.getSigners(); for (let i=0;i<signerList.length;i++) { console.log(i, signerList[i].address, ethers.utils.formatEther(await ethers.provider.getBalance(signerList[i].address))); }
+const signers = await ethers.getSigners(); const sender = signers[1]; await sender.sendTransaction({ to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686", value: ethers.utils.parseEther("5600") });
+const signers = await ethers.getSigners(); for (const s of signers) { console.log(s.address, ethers.utils.formatEther(await ethers.provider.getBalance(s.address))) }
+});  value: ethers.utils.parseEther("5600")  to: "0x5f25f01a529dD0C38F300c9cd27cd305004af686",await sender.sendTransaction({
+const [sender] = await ethers.getSigners();
+});  value: ethers.utils.parseEther("5600")  to: "0x56435Bb20BCca9bC41Bd6DaaE88ddA7A98b9018a",await sender.sendTransaction({
+const [sender] = await ethers.getSigners();
