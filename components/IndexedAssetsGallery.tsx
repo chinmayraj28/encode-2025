@@ -8,17 +8,16 @@ import { IPFSAudio } from './IPFSAudio';
 import { formatEther } from 'viem';
 import Link from 'next/link';
 
-type ViewMode = 'all' | 'purchases';
 type MediaFilter = 'all' | 'audio' | 'visual' | 'vfx' | 'sfx' | '3d';
 
 interface IndexedAssetsGalleryProps {
-  viewMode?: ViewMode;
   mediaFilter?: MediaFilter;
 }
 
-export default function IndexedAssetsGallery({ viewMode = 'all', mediaFilter = 'all' }: IndexedAssetsGalleryProps) {
+export default function IndexedAssetsGallery({ mediaFilter = 'all' }: IndexedAssetsGalleryProps) {
   const { address } = useAccount();
   const [showMyAssets, setShowMyAssets] = useState(false);
+  const [showPurchases, setShowPurchases] = useState(false);
   const [limit, setLimit] = useState(20);
 
   const creator = showMyAssets ? address : undefined;
@@ -75,18 +74,36 @@ export default function IndexedAssetsGallery({ viewMode = 'all', mediaFilter = '
           <h2 className="text-2xl font-bold text-white">⚡ Indexed Assets</h2>
           <p className="text-xs text-gray-400 mt-1">Powered by Envio • Lightning Fast Queries</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {address && (
-            <button
-              onClick={() => setShowMyAssets(!showMyAssets)}
-              className={`px-4 py-2 rounded-lg transition-all font-semibold ${
-                showMyAssets
-                  ? 'bg-teal-500 text-white hover:bg-teal-600'
-                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {showMyAssets ? '🌐 Show All' : '👤 My Assets'}
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  setShowMyAssets(!showMyAssets);
+                  if (!showMyAssets) setShowPurchases(false);
+                }}
+                className={`px-4 py-2 rounded-lg transition-all font-semibold ${
+                  showMyAssets
+                    ? 'bg-teal-500 text-white hover:bg-teal-600'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {showMyAssets ? '🌐 Show All' : '👤 My Assets'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowPurchases(!showPurchases);
+                  if (!showPurchases) setShowMyAssets(false);
+                }}
+                className={`px-4 py-2 rounded-lg transition-all font-semibold ${
+                  showPurchases
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {showPurchases ? '🌐 Show All' : '🛒 Your Purchases'}
+              </button>
+            </>
           )}
           <select
             value={limit}
@@ -113,6 +130,7 @@ export default function IndexedAssetsGallery({ viewMode = 'all', mediaFilter = '
             {mediaFilter !== 'all' ? `No ${mediaFilter} assets found` : 'No indexed assets found'}
           </p>
           {showMyAssets && <p className="text-sm text-gray-400">Try minting some NFTs first!</p>}
+          {showPurchases && <p className="text-sm text-gray-400">You haven't purchased any assets yet!</p>}
           {mediaFilter !== 'all' && <p className="text-sm text-gray-400">Try selecting a different media type</p>}
         </div>
       ) : (
@@ -237,6 +255,7 @@ export default function IndexedAssetsGallery({ viewMode = 'all', mediaFilter = '
               Showing <span className="text-teal-400 font-bold">{filteredAssets.length}</span> 
               {mediaFilter !== 'all' ? ` ${mediaFilter}` : ''} assets
               {showMyAssets && <span> created by you</span>}
+              {showPurchases && <span> purchased by you</span>}
               {mediaFilter !== 'all' && assets.length !== filteredAssets.length && (
                 <span className="text-gray-500"> (filtered from {assets.length} total)</span>
               )}

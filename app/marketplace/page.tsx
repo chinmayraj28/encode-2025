@@ -6,12 +6,10 @@ import Footer from '@/components/Footer';
 import IndexedAssetsGallery from '@/components/IndexedAssetsGallery';
 import { useAccount } from 'wagmi';
 
-type ViewMode = 'all' | 'purchases';
 type MediaFilter = 'all' | 'audio' | 'visual' | 'vfx' | 'sfx' | '3d';
 
 export default function MarketplacePage() {
   const { isConnected } = useAccount();
-  const [viewMode, setViewMode] = useState<ViewMode>('all');
   const [mediaFilter, setMediaFilter] = useState<MediaFilter>('all');
 
   return (
@@ -41,32 +39,6 @@ export default function MarketplacePage() {
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
             Browse and purchase high-quality audio, visuals, VFX, and 3D models directly from creators
           </p>
-
-          {/* View Mode Tabs */}
-          {isConnected && (
-            <div className="flex justify-center gap-4 mb-8">
-              <button
-                onClick={() => setViewMode('all')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  viewMode === 'all'
-                    ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
-                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800'
-                }`}
-              >
-                🌐 All Assets
-              </button>
-              <button
-                onClick={() => setViewMode('purchases')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  viewMode === 'purchases'
-                    ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
-                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800'
-                }`}
-              >
-                🛒 Your Purchases
-              </button>
-            </div>
-          )}
 
           {/* Media Type Filters */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
@@ -136,7 +108,7 @@ export default function MarketplacePage() {
         {/* Gallery */}
         <div className="mb-20">
           <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-3xl p-8 shadow-2xl">
-            <IndexedAssetsGallery viewMode={viewMode} mediaFilter={mediaFilter} />
+            <IndexedAssetsGallery mediaFilter={mediaFilter} />
           </div>
         </div>
 
