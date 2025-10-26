@@ -18,7 +18,7 @@
 *.annot
 *.cmj
 *.bak
-lib/*
+# lib/* - Commented out to allow Next.js lib folder
 *.mlast
 *.mliast
 .vscode
