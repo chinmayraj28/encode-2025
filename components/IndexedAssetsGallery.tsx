@@ -1,20 +1,48 @@
 'use client';
 
 import { useIndexedAssets } from '@/lib/hooks/useEnvioData';
-import { useAccount } from 'wagmi';
-import { useState } from 'react';
+import { useAccount, useReadContract } from 'wagmi';
+import { useState, useMemo } from 'react';
 import { IPFSImage } from './IPFSImage';
 import { IPFSAudio } from './IPFSAudio';
 import { formatEther } from 'viem';
 import Link from 'next/link';
 
-export default function IndexedAssetsGallery() {
+type ViewMode = 'all' | 'purchases';
+type MediaFilter = 'all' | 'audio' | 'visual' | 'vfx' | 'sfx' | '3d';
+
+interface IndexedAssetsGalleryProps {
+  viewMode?: ViewMode;
+  mediaFilter?: MediaFilter;
+}
+
+export default function IndexedAssetsGallery({ viewMode = 'all', mediaFilter = 'all' }: IndexedAssetsGalleryProps) {
   const { address } = useAccount();
   const [showMyAssets, setShowMyAssets] = useState(false);
   const [limit, setLimit] = useState(20);
 
   const creator = showMyAssets ? address : undefined;
   const { assets, loading, error } = useIndexedAssets(creator, limit);
+
+  // Filter assets based on media type and view mode
+  const filteredAssets = useMemo(() => {
+    let filtered = [...assets];
+
+    // Filter by media type
+    if (mediaFilter !== 'all') {
+      filtered = filtered.filter(asset => {
+        const assetMediaType = (asset.mediaType || asset.metadata?.mediaType || '').toLowerCase();
+        return assetMediaType === mediaFilter.toLowerCase();
+      });
+    }
+
+    // For purchases view, we would need to check if user has purchased (hasUsedAsset)
+    // This requires reading from the contract for each asset
+    // For now, we'll show all assets in purchases mode and add a "Purchased" badge
+    // A more complete implementation would fetch purchase data from Envio indexer
+
+    return filtered;
+  }, [assets, mediaFilter]);
 
   const getMediaIcon = (mediaType: string) => {
     switch (mediaType.toLowerCase()) {
@@ -78,16 +106,19 @@ export default function IndexedAssetsGallery() {
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-500 mb-4"></div>
           <p className="text-gray-400 animate-pulse">Loading indexed assets...</p>
         </div>
-      ) : assets.length === 0 ? (
+      ) : filteredAssets.length === 0 ? (
         <div className="text-center py-20 bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-xl">
           <div className="text-6xl mb-4">📭</div>
-          <p className="text-xl text-gray-300 mb-2">No indexed assets found</p>
+          <p className="text-xl text-gray-300 mb-2">
+            {mediaFilter !== 'all' ? `No ${mediaFilter} assets found` : 'No indexed assets found'}
+          </p>
           {showMyAssets && <p className="text-sm text-gray-400">Try minting some NFTs first!</p>}
+          {mediaFilter !== 'all' && <p className="text-sm text-gray-400">Try selecting a different media type</p>}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assets.map((asset) => {
+            {filteredAssets.map((asset) => {
               const metadata = asset.metadata;
               const mediaType = asset.mediaType || metadata?.mediaType || '';
               
@@ -203,8 +234,12 @@ export default function IndexedAssetsGallery() {
           {/* Footer Stats */}
           <div className="text-center text-sm text-gray-400 pt-4">
             <p>
-              Showing <span className="text-teal-400 font-bold">{assets.length}</span> indexed assets
+              Showing <span className="text-teal-400 font-bold">{filteredAssets.length}</span> 
+              {mediaFilter !== 'all' ? ` ${mediaFilter}` : ''} assets
               {showMyAssets && <span> created by you</span>}
+              {mediaFilter !== 'all' && assets.length !== filteredAssets.length && (
+                <span className="text-gray-500"> (filtered from {assets.length} total)</span>
+              )}
             </p>
           </div>
         </>

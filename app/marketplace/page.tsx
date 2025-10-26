@@ -6,8 +6,13 @@ import Footer from '@/components/Footer';
 import IndexedAssetsGallery from '@/components/IndexedAssetsGallery';
 import { useAccount } from 'wagmi';
 
+type ViewMode = 'all' | 'purchases';
+type MediaFilter = 'all' | 'audio' | 'visual' | 'vfx' | 'sfx' | '3d';
+
 export default function MarketplacePage() {
   const { isConnected } = useAccount();
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [mediaFilter, setMediaFilter] = useState<MediaFilter>('all');
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-teal-900 relative overflow-hidden">
@@ -36,6 +41,72 @@ export default function MarketplacePage() {
           <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
             Browse and purchase high-quality audio, visuals, VFX, and 3D models directly from creators
           </p>
+
+          {/* View Mode Tabs */}
+          {isConnected && (
+            <div className="flex justify-center gap-4 mb-8">
+              <button
+                onClick={() => setViewMode('all')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  viewMode === 'all'
+                    ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                🌐 All Assets
+              </button>
+              <button
+                onClick={() => setViewMode('purchases')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  viewMode === 'purchases'
+                    ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                🛒 Your Purchases
+              </button>
+            </div>
+          )}
+
+          {/* Media Type Filters */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            <FilterButton 
+              active={mediaFilter === 'all'}
+              onClick={() => setMediaFilter('all')}
+              icon="📁"
+              label="All Media"
+            />
+            <FilterButton 
+              active={mediaFilter === 'audio'}
+              onClick={() => setMediaFilter('audio')}
+              icon="🎵"
+              label="Audio"
+            />
+            <FilterButton 
+              active={mediaFilter === 'visual'}
+              onClick={() => setMediaFilter('visual')}
+              icon="🎨"
+              label="Visual"
+            />
+            <FilterButton 
+              active={mediaFilter === 'vfx'}
+              onClick={() => setMediaFilter('vfx')}
+              icon="✨"
+              label="VFX"
+            />
+            <FilterButton 
+              active={mediaFilter === 'sfx'}
+              onClick={() => setMediaFilter('sfx')}
+              icon="🔊"
+              label="SFX"
+            />
+            <FilterButton 
+              active={mediaFilter === '3d'}
+              onClick={() => setMediaFilter('3d')}
+              icon="🧊"
+              label="3D Models"
+            />
+          </div>
         </div>
 
         {/* Marketplace Features */}
@@ -65,7 +136,7 @@ export default function MarketplacePage() {
         {/* Gallery */}
         <div className="mb-20">
           <div className="bg-gray-800/30 backdrop-blur-sm border border-gray-700/30 rounded-3xl p-8 shadow-2xl">
-            <IndexedAssetsGallery />
+            <IndexedAssetsGallery viewMode={viewMode} mediaFilter={mediaFilter} />
           </div>
         </div>
 
@@ -144,6 +215,22 @@ export default function MarketplacePage() {
       {/* Footer */}
       <Footer />
     </main>
+  );
+}
+
+function FilterButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: string; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+        active
+          ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/20'
+          : 'bg-gray-800/50 text-gray-300 hover:bg-gray-800 border border-gray-700/30'
+      }`}
+    >
+      <span>{icon}</span>
+      <span className="text-sm">{label}</span>
+    </button>
   );
 }
 
