@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaAssetsMinted, getAssetsByCreator } from '@/lib/graphql';
 
+// Mark this route as dynamic
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
