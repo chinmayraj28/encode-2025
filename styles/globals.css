@@ -2,32 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: sans-serif;
-  background-color: #f9fafb;
-}
-
+/* --- Global Styles --- */
 :root {
-  --bg: #0b1220;
-  --surface: #0f1724;
-  --muted: #94a3b8;
-  --accent: #7c3aed;
+  --bg: #0b1220;          /* Dark background */
+  --surface: #0f1724;     /* Card/background surfaces */
+  --muted: #94a3b8;       /* Secondary text color */
+  --accent: #7c3aed;      /* Purple accent */
+  --heading: #ffffff;     /* Headings */
+  --text: #e5e7eb;        /* Main text */
 }
 
 @layer base {
   body {
-    @apply bg-[color:var(--bg)] text-slate-100 antialiased;
+    @apply bg-[color:var(--bg)] text-[color:var(--text)] font-sans antialiased;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading);
+    font-weight: 700;
+  }
+
+  a {
+    @apply text-[color:var(--accent)] hover:underline transition-colors;
+  }
+
+  p {
+    @apply text-[color:var(--text)];
+  }
+
+  input, textarea, select, button {
+    @apply outline-none focus:ring-2 focus:ring-[color:var(--accent)] focus:ring-offset-0;
   }
 }
 
+/* --- Components --- */
 @layer components {
+  /* Buttons */
   .btn-base {
-    @apply rounded-2xl px-4 py-2 font-medium transition-shadow;
+    @apply rounded-2xl px-6 py-2 font-semibold transition-all duration-200 shadow-md;
   }
+
   .btn-primary {
-    @apply btn-base bg-violet-500 hover:bg-violet-600 text-white shadow-md;
+    @apply btn-base bg-[color:var(--accent)] text-white hover:bg-violet-600 shadow-lg;
   }
+
   .btn-secondary {
-    @apply btn-base bg-transparent border border-slate-700 text-slate-100 hover:bg-slate-800;
+    @apply btn-base bg-[color:var(--surface)] text-[color:var(--text)] border border-slate-700 hover:bg-slate-800 shadow-sm;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-[color:var(--surface)] rounded-xl shadow-lg p-6 transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  /* Navbar */
+  .navbar {
+    @apply flex items-center justify-between py-4 px-8 bg-[color:var(--surface)] shadow-md fixed w-full z-50;
+  }
+
+  .navbar a {
+    @apply mx-4 text-[color:var(--text)] hover:text-[color:var(--accent)] font-medium;
+  }
+
+  /* Grid layouts */
+  .grid-3 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+  }
+}
+
+/* --- Utilities --- */
+@layer utilities {
+  .text-muted {
+    @apply text-[color:var(--muted)];
+  }
+
+  .text-accent {
+    @apply text-[color:var(--accent)];
+  }
+
+  .bg-surface {
+    @apply bg-[color:var(--surface)];
+  }
+
+  .shadow-card {
+    @apply shadow-lg hover:shadow-xl transition-shadow duration-200;
   }
 }

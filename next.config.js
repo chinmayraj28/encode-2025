@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  turbopack: {}, // Enable Turbopack with default settings
-  webpack: undefined, // Remove webpack config
+  experimental: {
+    turbopack: true,
+    turbopackRoot: './', // Explicitly set project root
+  },
 };
 
 module.exports = nextConfig;
