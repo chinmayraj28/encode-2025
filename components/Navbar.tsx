@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import ConnectWallet from './ConnectWallet';
 
@@ -56,8 +57,17 @@ export default function Navbar() {
             </nav>
           </div>
 
-          {/* Connect Wallet Button */}
-          <ConnectWallet />
+          {/* Right Side: Logo and Connect Wallet Button */}
+          <div className="flex items-center gap-4">
+            <Image 
+              src="/assets/Logo.png" 
+              alt="Media Mercatum Logo" 
+              width={50} 
+              height={50}
+              className="rounded-lg"
+            />
+            <ConnectWallet />
+          </div>
         </div>
 
         {/* Mobile Navigation */}
